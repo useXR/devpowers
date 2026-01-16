@@ -20,6 +20,85 @@ Before completion, the agent captures **learnings**—what worked, what didn't, 
 
 And because the skills trigger automatically based on context, you don't need to do anything special. Your coding agent just has Devpowers.
 
+## Workflow Diagram
+
+```mermaid
+flowchart TB
+    subgraph Setup["Phase 1: Setup & Discovery"]
+        A[using-devpowers] --> B{Master docs exist?}
+        B -->|No| C[project-setup]
+        C --> D[Create /docs/master/]
+        D --> E[brainstorming]
+        B -->|Yes| E
+    end
+
+    subgraph Planning["Phase 2: Design & Planning"]
+        E --> F[Save design doc]
+        F --> G[writing-plans]
+        G --> H[reviewing-plans]
+        H --> I[task-breakdown]
+        I --> J{Large plan?}
+        J -->|Yes| K[chunking-plans]
+        K --> L[Task files ready]
+        J -->|No| L
+    end
+
+    subgraph Review["Phase 3: Expert Review"]
+        L --> M{Medium/Large scope?}
+        M -->|Yes| N[domain-review]
+        N --> O[cross-domain-review]
+        O --> P{Has UI?}
+        M -->|No| Q[using-git-worktrees]
+        P -->|Yes| R[user-journey-mapping]
+        R --> Q
+        P -->|No| Q
+    end
+
+    subgraph Implementation["Phase 4: Implementation"]
+        Q --> S[Create worktree & branch]
+        S --> T[subagent-driven-development]
+
+        subgraph SDD["Per-Task Loop"]
+            T --> U[Dispatch implementer subagent]
+            U --> V[Implementer works]
+            V --> W[spec-reviewer agent]
+            W --> X{Spec OK?}
+            X -->|No| V
+            X -->|Yes| Y[code-quality-reviewer agent]
+            Y --> Z{Quality OK?}
+            Z -->|No| V
+            Z -->|Yes| AA[Mark task complete]
+            AA --> AB{More tasks?}
+            AB -->|Yes| U
+        end
+    end
+
+    subgraph Completion["Phase 5: Completion"]
+        AB -->|No| AC[lessons-learned]
+        AC --> AD[finishing-a-development-branch]
+        AD --> AE{User choice}
+        AE -->|Merge| AF[Merge to base branch]
+        AE -->|PR| AG[Create pull request]
+        AE -->|Keep| AH[Keep branch as-is]
+        AE -->|Discard| AI[Delete branch]
+    end
+
+    subgraph Skills["Implementer Subagent Skills"]
+        direction LR
+        SK1[test-driven-development]
+        SK2[frontend-design]
+        SK3[playwright-testing]
+        SK4[systematic-debugging]
+        SK5[verification-before-completion]
+    end
+
+    V -.->|Uses| Skills
+```
+
+**Legend:**
+- **Rectangles** = Skills (automatic triggering based on context)
+- **Diamonds** = Decision points
+- **Dotted lines** = Skills available to subagents during implementation
 
 ## Sponsorship
 
