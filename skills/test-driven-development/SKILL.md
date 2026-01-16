@@ -28,6 +28,34 @@ Write the test first. Watch it fail. Write minimal code to pass.
 
 Thinking "skip TDD just this once"? Stop. That's rationalization.
 
+## Test Plan Integration
+
+When a task document exists with test plans:
+1. Read "Unit Test Plan" section for unit tests
+2. Read "E2E Test Plan" section for integration tests
+3. Implement tests in the order specified
+4. Do not skip planned tests
+5. Add additional tests only if gaps discovered
+
+## Unit Tests (from domain review)
+
+Execute tests from "Unit Test Plan":
+- Function-level tests
+- Edge cases
+- Error handling
+
+These tests were planned by the testing critic during domain review.
+
+## E2E Tests (from journey mapping)
+
+Execute tests from "E2E Test Plan":
+- User journey scenarios
+- Happy paths
+- Error states
+- Accessibility flows
+
+These tests were derived from user journey mapping.
+
 ## The Iron Law
 
 ```

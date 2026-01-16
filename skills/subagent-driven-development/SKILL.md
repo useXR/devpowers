@@ -88,6 +88,25 @@ digraph process {
 - `./spec-reviewer-prompt.md` - Dispatch spec compliance reviewer subagent
 - `./code-quality-reviewer-prompt.md` - Dispatch code quality reviewer subagent
 
+## Task Execution
+
+Before implementing each task:
+1. Read task document from `/docs/plans/[feature]/tasks/`
+2. Check "Unit Test Plan" section for pre-planned tests
+3. Check "E2E Test Plan" section for integration tests
+4. Follow TDD: Write tests first, then implement
+
+## TDD Flow
+
+For each task:
+1. Read "Unit Test Plan" from task document
+2. Write the first failing test from the plan
+3. Run test, confirm it fails
+4. Write minimal implementation to pass
+5. Run test, confirm it passes
+6. Repeat for remaining tests in plan
+7. Check "E2E Test Plan" and ensure coverage
+
 ## Example Workflow
 
 ```
@@ -163,6 +182,34 @@ Final reviewer: All requirements met, ready to merge
 
 Done!
 ```
+
+## Learnings Capture
+
+During implementation, when you encounter:
+- Multiple iterations needed to solve something
+- Documentation that didn't match reality
+- A pattern that emerged across multiple places
+- A workaround that was required
+- Something that "should have worked" but didn't
+
+Append to `/docs/plans/[feature]/learnings.md`:
+
+```markdown
+### [Date/Task] - Brief title
+**Context:** What was being attempted
+**Issue:** What went wrong or was tricky
+**Resolution:** What finally worked
+**Lesson:** What to remember for next time
+```
+
+## After Each Task
+
+After implementing a task:
+1. Run tests to verify implementation
+2. Invoke code-reviewer agent for review
+3. Address any findings from review
+4. Commit with descriptive message
+5. Update STATUS.md task status to complete
 
 ## Advantages
 
