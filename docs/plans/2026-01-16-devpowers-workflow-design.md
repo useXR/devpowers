@@ -754,6 +754,184 @@ Each skill ends with a prompt asking if the user is ready for the next step.
 
 ---
 
+## Workflow State Tracking
+
+Each feature maintains explicit state in `STATUS.md` for robust session resumption.
+
+**Location:** `/docs/plans/[feature]/STATUS.md`
+
+**Template:**
+```markdown
+# Workflow Status: [Feature Name]
+
+## Current State
+- **Stage:** [brainstorming | high-level-plan | reviewing-plans | task-breakdown | domain-review | cross-domain-review | user-journey-mapping | implementing | lessons-learned | finishing]
+- **Last Updated:** [timestamp]
+- **Last Action:** [brief description]
+
+## Progress
+- [x] Brainstorming complete
+- [x] High-level plan written
+- [ ] Plan review converged
+- [ ] Tasks broken down
+- [ ] Domain review converged
+- [ ] Cross-domain review passed
+- [ ] User journeys mapped
+- [ ] Implementation complete
+- [ ] Lessons captured
+- [ ] Branch finished
+
+## Blocking Issues
+<!-- Any issues preventing progress -->
+
+## Next Action
+[What should happen next]
+```
+
+**When to update:**
+- At every skill handoff
+- When pausing or aborting
+- On session resume (hooks update automatically)
+
+---
+
+## Hook-Based Automation
+
+Hooks provide deterministic automation at key workflow points. These run automatically without consuming context window for their logic.
+
+### SessionStart Hook
+
+**Purpose:** Detect workflow state and inject minimal context on session start.
+
+**Behavior:**
+1. Check for `/docs/plans/*/STATUS.md` files
+2. If active feature found, inject: "Active feature: [name], Stage: [stage], Next: [action]"
+3. Keep injection minimal (<100 words) to preserve context
+
+**Implementation:** `hooks/session-start-workflow.sh`
+
+---
+
+### UserPromptSubmit Hook
+
+**Purpose:** Enforce workflow sequence and block out-of-order actions.
+
+**Behavior:**
+1. Parse user prompt for workflow keywords (implement, review, etc.)
+2. Check current stage in STATUS.md
+3. If action is out of sequence: Block with reason
+4. If action is valid: Allow, optionally inject relevant master doc section
+
+**Example blocks:**
+- User says "implement" but domain review not complete → "Domain review not finished. Run domain-review first."
+- User says "create PR" but lessons not captured → "Lessons learned step not complete."
+
+**Context efficiency:** Only inject master doc sections when directly relevant to the prompt, not on every message.
+
+**Implementation:** `hooks/workflow-enforcer.py`
+
+---
+
+### PostToolUse Hook (Write)
+
+**Purpose:** Auto-prompt for next steps after task file creation.
+
+**Matcher:** `Write` tool, path matches `*/tasks/*.md`
+
+**Behavior:**
+1. Detect task file written
+2. Update STATUS.md
+3. Return additionalContext: "Task file created. Domain review recommended."
+
+**Implementation:** `hooks/task-created.sh`
+
+---
+
+### SubagentStop Hook
+
+**Purpose:** Auto-trigger code review after implementation subagents complete.
+
+**Behavior:**
+1. Check if subagent was an implementation agent
+2. If yes, inject: "Implementation step complete. Run code review before proceeding."
+3. Update STATUS.md with completed task
+
+**Implementation:** `hooks/subagent-review.py`
+
+---
+
+### Stop Hook
+
+**Purpose:** Prompt for learnings capture after significant work.
+
+**Behavior:**
+1. Check if significant work was done (file changes, task completions)
+2. If learnings log hasn't been updated recently: "Any learnings to capture from this work?"
+3. Only triggers after implementation phases, not during planning
+
+**Implementation:** `hooks/learnings-prompt.sh`
+
+---
+
+## Domain Reviewer Agents
+
+In addition to skills, specialized agents provide focused expertise for reviews.
+
+### Agent vs Skill
+
+| Aspect | Skill | Agent |
+|--------|-------|-------|
+| Invocation | Loaded into context, followed by Claude | Dispatched via Task tool |
+| Context | Full conversation context | Fresh context per invocation |
+| Use case | Processes and workflows | Focused review/analysis roles |
+| Output | Inline guidance | Single consolidated response |
+
+### Domain Reviewer Agents
+
+```
+agents/
+├── frontend-reviewer.md      # UI/UX, components, design system adherence
+├── backend-reviewer.md       # API design, data flow, error handling
+├── testing-reviewer.md       # Test coverage, edge cases, test quality
+├── infrastructure-reviewer.md # Deployment, scaling, ops concerns
+└── integration-reviewer.md   # Cross-domain interfaces, contracts
+```
+
+**Agent structure:**
+```markdown
+---
+name: frontend-reviewer
+description: Reviews frontend implementation for UI/UX quality and design system adherence
+model: sonnet
+---
+
+# Frontend Reviewer
+
+You are a senior frontend engineer reviewing implementation work.
+
+## Your Focus
+- Component structure and reusability
+- Design system adherence (reference /docs/master/design-system.md)
+- Accessibility compliance
+- Performance considerations
+- State management patterns
+
+## Review Format
+Provide findings in severity categories:
+- CRITICAL: Must fix before merge
+- IMPORTANT: Should fix before merge
+- SUGGESTION: Consider for future
+
+## Instructions
+[Task-specific instructions injected here]
+```
+
+**When to use agents vs domain-review skill:**
+- `domain-review` skill: Orchestrates multiple critics during planning/review phases
+- Individual reviewer agents: Deep-dive reviews during or after implementation
+
+---
+
 ## Implementation Order
 
 1. **Foundation:** Move `reviewing-plans` into proper skill structure
@@ -762,4 +940,6 @@ Each skill ends with a prompt asking if the user is ready for the next step.
 4. **Review agents:** Create `domain-review`, `cross-domain-review`
 5. **Testing flow:** Create `user-journey-mapping`, fork `playwright-testing`
 6. **Learning loop:** Create `lessons-learned`, update all prompts for learnings log
-7. **Polish:** Fork `frontend-design`, integrate master doc references everywhere
+7. **Hooks:** Implement workflow automation hooks
+8. **Reviewer agents:** Create domain reviewer agent files
+9. **Polish:** Fork `frontend-design`, integrate master doc references everywhere
