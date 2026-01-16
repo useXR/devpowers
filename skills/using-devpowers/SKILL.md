@@ -1,23 +1,83 @@
 ---
 name: using-devpowers
-description: Use when starting any conversation - establishes how to find and use skills, requiring Skill tool invocation before ANY response including clarifying questions
+description: >
+  This skill should be used when the user asks to "start a feature",
+  "use devpowers", "plan a new feature", "begin development", "work on [feature]",
+  or when starting any non-trivial development task. Provides workflow overview,
+  scope detection, and routes to appropriate starting skill.
 ---
 
+# Using Devpowers
+
 <EXTREMELY-IMPORTANT>
-If you think there is even a 1% chance a skill might apply to what you are doing, you ABSOLUTELY MUST invoke the skill.
+If you think there is even a 1% chance another devpowers skill applies to what you are doing, you ABSOLUTELY MUST invoke that skill.
 
 IF A SKILL APPLIES TO YOUR TASK, YOU DO NOT HAVE A CHOICE. YOU MUST USE IT.
 
 This is not negotiable. This is not optional. You cannot rationalize your way out of this.
 </EXTREMELY-IMPORTANT>
 
+## Entry-Point Workflow
+
+```
+1. Check /docs/master/ exists
+   - If not: hand off to project-setup
+   - If yes: continue
+
+2. Check /docs/plans/ for existing features
+   - If active feature found: offer to resume or start new
+   - If no features: start fresh
+
+3. Assess scope of request (ask user if unclear):
+   - Trivial: Direct implementation, no planning
+   - Small: brainstorming → plan → implement
+   - Medium/Large: Full workflow with reviews
+
+4. Hand off to appropriate skill:
+   - project-setup (if /docs/master/ missing)
+   - brainstorming (for new features)
+   - Resume point (for existing features)
+```
+
+## Scope Tiers
+
+| Scope | Description | Workflow |
+|-------|-------------|----------|
+| **Trivial** | Typo fix, config tweak, single-line change | Direct implementation, no planning |
+| **Small** | Bug fix, minor enhancement, <50 lines | Brainstorm → Plan → Implement → Lessons (optional) |
+| **Medium** | Feature addition, moderate complexity | Full workflow, skip user journey mapping if no UI |
+| **Large** | Major feature, architectural change | Full workflow |
+
+## Detecting Workflow State
+
+Check for existing artifacts:
+- `/docs/master/` exists → project setup complete
+- `/docs/plans/[feature]/` exists → brainstorming done
+- `high-level-plan.md` exists → planning done
+- `/tasks/` folder exists → breakdown done
+- `STATUS.md` → read for current stage
+
+If resuming, prompt: "Found existing [artifacts] for [feature]. Continue from [stage]?"
+
+## Reading STATUS.md
+
+When STATUS.md exists, extract:
+- **Stage** — Current workflow stage
+- **Scope** — Trivial/Small/Medium/Large
+- **Next Action** — What to do next
+
+## Handoffs
+
+After routing:
+- If project-setup needed: "No master docs found. Let's set up the project first." → Invoke `project-setup`
+- If new feature: "Ready to brainstorm [feature]?" → Invoke `brainstorming`
+- If resume: "Resuming [feature] at [stage]. [Next action]?" → Invoke appropriate skill
+
 ## How to Access Skills
 
 **In Claude Code:** Use the `Skill` tool. When you invoke a skill, its content is loaded and presented to you—follow it directly. Never use the Read tool on skill files.
 
 **In other environments:** Check your platform's documentation for how skills are loaded.
-
-# Using Skills
 
 ## The Rule
 
