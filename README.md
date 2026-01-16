@@ -4,15 +4,21 @@ Devpowers is a complete software development workflow for your coding agents, bu
 
 ## How it works
 
-It starts from the moment you fire up your coding agent. As soon as it sees that you're building something, it *doesn't* just jump into trying to write code. Instead, it steps back and asks you what you're really trying to do.
+It starts from the moment you fire up your coding agent. Before any code is written, devpowers checks for **master documents**—project-wide knowledge like architecture decisions, design systems, API schemas, and domain terminology. If they don't exist, it guides you through creating them.
 
-Once it's teased a spec out of the conversation, it shows it to you in chunks short enough to actually read and digest.
+When you're ready to build something, the agent *doesn't* just jump into writing code. Instead, it steps back and asks you what you're really trying to do.
 
-After you've signed off on the design, your agent puts together an implementation plan that's clear enough for an enthusiastic junior engineer with poor taste, no judgement, no project context, and an aversion to testing to follow. It emphasizes true red/green TDD, YAGNI (You Aren't Gonna Need It), and DRY.
+Once it's teased a spec out of the conversation, it shows it to you in chunks short enough to actually read and digest. Then it writes a **high-level plan** that gets reviewed for feasibility before breaking down into **detailed task files** with exact file paths, complete code, and verification steps.
 
-Next up, once you say "go", it launches a *subagent-driven-development* process, having agents work through each engineering task, inspecting and reviewing their work, and continuing forward. It's not uncommon for Claude to be able to work autonomously for a couple hours at a time without deviating from the plan you put together.
+For UI features, it maps **user journeys** that drive E2E test planning. For complex features, it runs **domain expert reviews** to catch architectural issues early.
 
-There's a bunch more to it, but that's the core of the system. And because the skills trigger automatically, you don't need to do anything special. Your coding agent just has Devpowers.
+After you've signed off on the plan, your agent creates an isolated **git worktree** and launches a *subagent-driven-development* process—dispatching fresh subagents per task with **two-stage review** (spec compliance, then code quality). It's not uncommon for Claude to work autonomously for a couple hours at a time without deviating from the plan.
+
+Throughout implementation, subagents use domain-specific skills like **frontend-design** (avoiding generic AI aesthetics) and **playwright-testing** (deriving tests from journey maps). When things go wrong, **systematic-debugging** ensures root cause analysis instead of guessing.
+
+Before completion, the agent captures **learnings**—what worked, what didn't, and what to remember for next time. Then it presents structured options for finishing: merge locally, create PR, keep the branch, or discard.
+
+And because the skills trigger automatically based on context, you don't need to do anything special. Your coding agent just has Devpowers.
 
 
 ## Sponsorship
@@ -44,17 +50,19 @@ Then install the plugin from this marketplace:
 
 ### Verify Installation
 
-Check that commands appear:
+Check that skills load:
 
 ```bash
 /help
 ```
 
 ```
-# Should see:
-# /devpowers:brainstorm - Interactive design refinement
-# /devpowers:write-plan - Create implementation plan
-# /devpowers:execute-plan - Execute plan in batches
+# Should see devpowers skills listed, including:
+# - devpowers:brainstorming
+# - devpowers:writing-plans
+# - devpowers:subagent-driven-development
+# - devpowers:test-driven-development
+# and more...
 ```
 
 ### Codex
@@ -79,19 +87,47 @@ Fetch and follow instructions from https://raw.githubusercontent.com/arobb/devpo
 
 ## The Basic Workflow
 
-1. **brainstorming** - Activates before writing code. Refines rough ideas through questions, explores alternatives, presents design in sections for validation. Saves design document.
+The workflow adapts to feature scope (trivial → small → medium → large):
 
-2. **using-git-worktrees** - Activates after design approval. Creates isolated workspace on new branch, runs project setup, verifies clean test baseline.
+### Phase 1: Setup & Discovery
 
-3. **writing-plans** - Activates with approved design. Breaks work into bite-sized tasks (2-5 minutes each). Every task has exact file paths, complete code, verification steps.
+1. **using-devpowers** - Entry point. Detects workflow state, checks for master documents, assesses scope, routes to appropriate skill.
 
-4. **subagent-driven-development** or **executing-plans** - Activates with plan. Dispatches fresh subagent per task with two-stage review (spec compliance, then code quality), or executes in batches with human checkpoints.
+2. **project-setup** - Activates if `/docs/master/` missing. Creates master documents: architecture, design system, API schemas, domain terminology.
 
-5. **test-driven-development** - Activates during implementation. Enforces RED-GREEN-REFACTOR: write failing test, watch it fail, write minimal code, watch it pass, commit. Deletes code written before tests.
+### Phase 2: Design & Planning
 
-6. **requesting-code-review** - Activates between tasks. Reviews against plan, reports issues by severity. Critical issues block progress.
+3. **brainstorming** - Refines rough ideas through questions, explores 2-3 approaches, presents design in sections for validation. Saves design document.
 
-7. **finishing-a-development-branch** - Activates when tasks complete. Verifies tests, presents options (merge/PR/keep/discard), cleans up worktree.
+4. **writing-plans** - Creates high-level implementation plan with phases and dependencies. Emphasizes TDD, YAGNI, DRY.
+
+5. **reviewing-plans** - Reviews plan for feasibility, identifies risks, validates against master documents.
+
+6. **task-breakdown** - Breaks high-level plan into detailed task files (2-5 minutes each) with exact file paths, complete code, test plans.
+
+7. **chunking-plans** - Splits large plans into navigable task file folders when needed.
+
+### Phase 3: Expert Review (Medium/Large features)
+
+8. **domain-review** - Single-domain expert review (security, performance, UX, etc.) for specialized validation.
+
+9. **cross-domain-review** - Multi-domain validation ensuring coherent integration across concerns.
+
+10. **user-journey-mapping** - For UI features: maps user journeys that drive E2E test planning.
+
+### Phase 4: Implementation
+
+11. **using-git-worktrees** - Creates isolated workspace on new branch, runs project setup, verifies clean test baseline.
+
+12. **subagent-driven-development** - Dispatches fresh subagent per task with two-stage review (spec compliance, then code quality).
+
+13. **test-driven-development** - Enforces RED-GREEN-REFACTOR: write failing test, watch it fail, write minimal code, watch it pass, commit.
+
+### Phase 5: Completion
+
+14. **lessons-learned** - Captures insights, gotchas, and patterns discovered during implementation.
+
+15. **finishing-a-development-branch** - Verifies tests, presents options (merge/PR/keep/discard), cleans up worktree.
 
 **The agent checks for relevant skills before any task.** Mandatory workflows, not suggestions.
 
@@ -99,34 +135,83 @@ Fetch and follow instructions from https://raw.githubusercontent.com/arobb/devpo
 
 ### Skills Library
 
+**Setup & Discovery**
+- **using-devpowers** - Entry point, scope detection, workflow state management
+- **project-setup** - Master document creation (architecture, design system, API schemas, terminology)
+
+**Design & Planning**
+- **brainstorming** - Socratic design refinement, explores alternatives
+- **writing-plans** - High-level implementation plans with TDD emphasis
+- **reviewing-plans** - Plan feasibility review against master documents
+- **task-breakdown** - Detailed task files with exact paths and code
+- **chunking-plans** - Splits large plans into navigable folders
+
+**Expert Review**
+- **domain-review** - Single-domain expert review (security, performance, UX, etc.)
+- **cross-domain-review** - Multi-domain integration validation
+- **user-journey-mapping** - E2E test scenarios from user flows
+
+**Implementation**
+- **using-git-worktrees** - Isolated workspace creation
+- **subagent-driven-development** - Fresh subagent per task with two-stage review
+- **dispatching-parallel-agents** - Concurrent subagent workflows
+
 **Testing**
-- **test-driven-development** - RED-GREEN-REFACTOR cycle (includes testing anti-patterns reference)
+- **test-driven-development** - RED-GREEN-REFACTOR cycle with test plan integration
+- **playwright-testing** - E2E tests derived from user journeys
+
+**Domain-Specific**
+- **frontend-design** - UI components avoiding generic AI aesthetics, uses project design system
 
 **Debugging**
-- **systematic-debugging** - 4-phase root cause process (includes root-cause-tracing, defense-in-depth, condition-based-waiting techniques)
-- **verification-before-completion** - Ensure it's actually fixed
+- **systematic-debugging** - 4-phase root cause process (root-cause-tracing, defense-in-depth, condition-based-waiting)
+- **verification-before-completion** - Evidence before claims
 
-**Collaboration**
-- **brainstorming** - Socratic design refinement
-- **writing-plans** - Detailed implementation plans
-- **executing-plans** - Batch execution with checkpoints
-- **dispatching-parallel-agents** - Concurrent subagent workflows
+**Code Quality**
 - **requesting-code-review** - Pre-review checklist
 - **receiving-code-review** - Responding to feedback
-- **using-git-worktrees** - Parallel development branches
-- **finishing-a-development-branch** - Merge/PR decision workflow
-- **subagent-driven-development** - Fast iteration with two-stage review (spec compliance, then code quality)
+
+**Completion**
+- **lessons-learned** - Capture insights and gotchas
+- **finishing-a-development-branch** - Merge/PR decision, worktree cleanup
 
 **Meta**
 - **writing-skills** - Create new skills following best practices (includes testing methodology)
-- **using-devpowers** - Introduction to the skills system
+
+### Hook Automation
+
+Devpowers includes workflow automation hooks that run automatically:
+
+- **SessionStart** - Loads workflow state and context
+- **UserPromptSubmit** - Suggests relevant skills based on your message
+- **PreToolUse (Write)** - Validates file writes against master documents
+- **PreToolUse (Bash)** - Prevents heredoc file creation (use Write tool instead)
+- **PostToolUse (Write)** - Detects task file creation for task-breakdown
+- **SubagentStop** - Reviews subagent work before completion
+- **Stop** - Prompts for learnings capture before ending
+- **Notification** - Desktop toast notifications when Claude needs input
+
+### Master Documents
+
+Devpowers creates project-wide knowledge in `/docs/master/`:
+
+- **architecture.md** - System design, component boundaries, data flow
+- **design-system.md** - UI patterns, colors, typography, component library
+- **api-schemas.md** - Endpoint contracts, request/response formats
+- **terminology.md** - Domain-specific language and definitions
+
+These documents are referenced throughout the workflow to ensure consistency.
 
 ## Philosophy
 
 - **Test-Driven Development** - Write tests first, always
 - **Systematic over ad-hoc** - Process over guessing
-- **Complexity reduction** - Simplicity as primary goal
+- **Two-level planning** - High-level design → detailed task breakdown
+- **Expert review early** - Catch architectural issues before implementation
+- **Fresh context per task** - Subagents prevent context pollution
 - **Evidence over claims** - Verify before declaring success
+- **Capture learnings** - Document what worked and what didn't
+- **YAGNI ruthlessly** - Remove unnecessary features from all designs
 
 Read more: [Devpowers for Claude Code](https://blog.fsck.com/2025/10/09/superpowers/)
 
