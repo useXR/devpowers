@@ -11,6 +11,22 @@ Help turn ideas into fully formed designs and specs through natural collaborativ
 
 Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design in small sections (200-300 words), checking after each section whether it looks right so far.
 
+## Scope Assessment
+
+Before brainstorming, assess scope:
+- **Trivial:** Direct implementation, skip brainstorming
+- **Small:** Brief brainstorm, simple plan
+- **Medium/Large:** Full brainstorming process
+
+Ask user to confirm scope if unclear.
+
+## Before Brainstorming
+
+Read master docs for context:
+- `/docs/master/design-system.md` — UI patterns to follow
+- `/docs/master/lessons-learned/` — Past learnings to consider
+- `/docs/master/patterns/` — Established patterns
+
 ## The Process
 
 **Understanding the idea:**
@@ -32,17 +48,29 @@ Start by understanding the current project context, then ask questions one at a 
 - Cover: architecture, components, data flow, error handling, testing
 - Be ready to go back and clarify if something doesn't make sense
 
+## Output Structure
+
+Create:
+```
+/docs/plans/[feature]/
+├── STATUS.md          # From template
+├── learnings.md       # From template
+└── brainstorm.md      # Brainstorming notes
+```
+
 ## After the Design
 
 **Documentation:**
-- Write the validated design to `docs/plans/YYYY-MM-DD-<topic>-design.md`
+- Write the validated design to `/docs/plans/[feature]/brainstorm.md`
+- Copy STATUS-template.md to `/docs/plans/[feature]/STATUS.md`
+- Copy learnings-template.md to `/docs/plans/[feature]/learnings.md`
 - Use elements-of-style:writing-clearly-and-concisely skill if available
 - Commit the design document to git
 
-**Implementation (if continuing):**
-- Ask: "Ready to set up for implementation?"
-- Use devpowers:using-git-worktrees to create isolated workspace
-- Use devpowers:writing-plans to create detailed implementation plan
+**Update STATUS.md:**
+- Stage: brainstorming (complete)
+- Last Action: Brainstorming complete
+- Next Action: High-level plan
 
 ## Key Principles
 
@@ -52,3 +80,11 @@ Start by understanding the current project context, then ask questions one at a 
 - **Explore alternatives** - Always propose 2-3 approaches before settling
 - **Incremental validation** - Present design in sections, validate each
 - **Be flexible** - Go back and clarify when something doesn't make sense
+
+## Handoff
+
+"Brainstorming complete. Feature folder created at `/docs/plans/[feature]/`.
+
+Ready to write the high-level plan?"
+
+-> Invokes `writing-plans`
