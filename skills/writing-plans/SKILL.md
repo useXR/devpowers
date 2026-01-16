@@ -7,24 +7,29 @@ description: Use when you have a spec or requirements for a multi-step task, bef
 
 ## Overview
 
-Write comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
+Write comprehensive high-level architecture plans. Document the approach, major components, data flow, and key decisions. This plan will be reviewed by critics and then broken down into implementable tasks.
 
-Assume they are a skilled developer, but know almost nothing about our toolset or problem domain. Assume they don't know good test design very well.
+**Announce at start:** "I'm using the writing-plans skill to create the high-level plan."
 
-**Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
+## Plan Focus
 
-**Context:** This should be run in a dedicated worktree (created by brainstorming skill).
+Write HIGH-LEVEL architecture, not implementation details:
+- Major components and their responsibilities
+- Data flow between components
+- Key interfaces and contracts
+- Technology choices and rationale
+- Error handling strategy
+- Testing approach
 
-**Save plans to:** `docs/plans/YYYY-MM-DD-<feature-name>.md`
+Do NOT include:
+- Specific function implementations
+- Line-by-line code changes
+- Detailed file modifications (that's task-breakdown)
+- Exact test code (test plans come later)
 
-## Bite-Sized Task Granularity
+## Output
 
-**Each step is one action (2-5 minutes):**
-- "Write the failing test" - step
-- "Run it to make sure it fails" - step
-- "Implement the minimal code to make the test pass" - step
-- "Run the tests and make sure they pass" - step
-- "Commit" - step
+Save to: `/docs/plans/[feature]/high-level-plan.md`
 
 ## Plan Document Header
 
@@ -33,7 +38,7 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **For Claude:** REQUIRED SUB-SKILL: Use devpowers:executing-plans to implement this plan task-by-task.
+> **For Claude:** REQUIRED SUB-SKILL: Use devpowers:subagent-driven-development to implement this plan task-by-task.
 
 **Goal:** [One sentence describing what this builds]
 
@@ -44,73 +49,61 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 ---
 ```
 
-## Task Structure
+## Plan Sections
 
-```markdown
-### Task N: [Component Name]
+### 1. Components
 
-**Files:**
-- Create: `exact/path/to/file.py`
-- Modify: `exact/path/to/existing.py:123-145`
-- Test: `tests/exact/path/to/test.py`
+List major components with responsibilities:
+- Component name and purpose
+- Key interfaces it exposes
+- Dependencies it requires
 
-**Step 1: Write the failing test**
+### 2. Data Flow
 
-```python
-def test_specific_behavior():
-    result = function(input)
-    assert result == expected
-```
+Describe how data moves through the system:
+- Input sources
+- Transformations
+- Output destinations
+- Error paths
 
-**Step 2: Run test to verify it fails**
+### 3. Key Decisions
 
-Run: `pytest tests/path/test.py::test_name -v`
-Expected: FAIL with "function not defined"
+Document major architectural choices:
+- Decision and rationale
+- Alternatives considered
+- Trade-offs accepted
 
-**Step 3: Write minimal implementation**
+### 4. Error Handling Strategy
 
-```python
-def function(input):
-    return expected
-```
+High-level approach to errors:
+- Error categories
+- Recovery strategies
+- User feedback approach
 
-**Step 4: Run test to verify it passes**
+### 5. Testing Strategy
 
-Run: `pytest tests/path/test.py::test_name -v`
-Expected: PASS
+Overview of testing approach:
+- Unit test focus areas
+- Integration test boundaries
+- E2E scenarios (if applicable)
 
-**Step 5: Commit**
+## State Update
 
-```bash
-git add tests/path/test.py src/path/file.py
-git commit -m "feat: add specific feature"
-```
-```
+After writing plan, update STATUS.md:
+- Stage: high-level-plan
+- Last Action: High-level plan written
+- Next Action: Plan review
 
 ## Remember
-- Exact file paths always
-- Complete code in plan (not "add validation")
-- Exact commands with expected output
-- Reference relevant skills with @ syntax
-- DRY, YAGNI, TDD, frequent commits
+- Architecture-level detail, not implementation
+- Complete enough for critics to find issues
+- Reference relevant master docs patterns
+- DRY, YAGNI principles throughout
 
-## Execution Handoff
+## Handoff
 
-After saving the plan, offer execution choice:
+"High-level plan complete and saved to `/docs/plans/[feature]/high-level-plan.md`.
 
-**"Plan complete and saved to `docs/plans/<filename>.md`. Two execution options:**
+Ready for plan review?"
 
-**1. Subagent-Driven (this session)** - I dispatch fresh subagent per task, review between tasks, fast iteration
-
-**2. Parallel Session (separate)** - Open new session with executing-plans, batch execution with checkpoints
-
-**Which approach?"**
-
-**If Subagent-Driven chosen:**
-- **REQUIRED SUB-SKILL:** Use devpowers:subagent-driven-development
-- Stay in this session
-- Fresh subagent per task + code review
-
-**If Parallel Session chosen:**
-- Guide them to open new session in worktree
-- **REQUIRED SUB-SKILL:** New session uses devpowers:executing-plans
+-> Invokes `reviewing-plans`
