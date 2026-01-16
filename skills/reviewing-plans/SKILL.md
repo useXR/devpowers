@@ -1,18 +1,38 @@
 ---
 name: reviewing-plans
-description: Use when you have a written implementation plan that needs critical review before execution. Launches parallel critic subagents to find feasibility issues, completeness gaps, and over-engineering. Presents findings with severity ratings and recommends whether additional review rounds are needed. Use after writing-plans and before subagent-driven-development.
+description: >
+  This skill should be used when the user asks to "review the plan",
+  "validate the architecture", "check if the plan is ready", "critique the design",
+  or after writing-plans produces a high-level-plan.md file. Runs parallel critics
+  to find issues before committing to implementation.
 ---
 
 # Reviewing Plans
 
-Dispatch parallel critic subagents to find issues in implementation plans before execution begins.
+Dispatch parallel critic subagents to find issues in high-level plans before task breakdown.
 
 **Announce at start:** "I'm using the reviewing-plans skill to critically review this plan."
+
+## Scope Clarification
+
+This skill reviews `high-level-plan.md` (architecture, approach, major components).
+
+It does NOT review:
+- Individual task files (that's `domain-review`)
+- Integration between domains (that's `cross-domain-review`)
+- Actual code (that's code reviewers)
+
+## Review Loop
+
+This skill uses review loops. Follow the central review loop rules:
+- Maximum 3 rounds per review stage
+- Convergence: No CRITICAL or IMPORTANT issues
+- After 3 rounds: Present user with accept/escalate/abort options
 
 ## Workflow Position
 
 ```
-writing-plans → reviewing-plans → subagent-driven-development
+writing-plans → reviewing-plans → task-breakdown
 ```
 
 ## The Process
@@ -28,9 +48,9 @@ Read the plan file. Extract:
 
 Launch 3 subagents simultaneously using the Task tool with `subagent_type: "general-purpose"`:
 
-1. **Feasibility Critic** - Read `./feasibility-critic-prompt.md`, replace `{PLAN_CONTENT}` with actual plan
-2. **Completeness Critic** - Read `./completeness-critic-prompt.md`, replace `{PLAN_CONTENT}` with actual plan
-3. **Simplicity Critic** - Read `./simplicity-critic-prompt.md`, replace `{PLAN_CONTENT}` with actual plan
+1. **Feasibility Critic** - Read `./feasibility-critic.md`, replace `{PLAN_CONTENT}` with actual plan
+2. **Completeness Critic** - Read `./completeness-critic.md`, replace `{PLAN_CONTENT}` with actual plan
+3. **Simplicity Critic** - Read `./simplicity-critic.md`, replace `{PLAN_CONTENT}` with actual plan
 
 All three must run in parallel (single message with 3 Task tool calls).
 
@@ -120,17 +140,15 @@ This creates an audit trail showing:
 - Why it changed (which critic, what severity)
 - When changes were made
 
-### Step 7: Execution Handoff
+### Step 7: Task Breakdown Handoff
 
 When ready to proceed:
 
-> "Plan review complete. Ready for execution.
+> "Plan review complete. [Summary of findings/fixes].
 >
-> **Subagent-Driven** - Fresh subagent per task, review between tasks
->
-> Proceed?"
+> Ready to break into implementable tasks?"
 
-**REQUIRED SUB-SKILL:** Use devpowers:subagent-driven-development
+**REQUIRED SUB-SKILL:** Use devpowers:task-breakdown
 
 ## Convergence Detection
 
@@ -222,7 +240,7 @@ You: I'm using the subagent-driven-development skill to execute this plan.
 - devpowers:writing-plans - Creates plans this skill reviews
 
 **Downstream:**
-- devpowers:subagent-driven-development - Executes reviewed plans
+- devpowers:task-breakdown - Breaks reviewed plans into tasks
 
 ## Red Flags
 
