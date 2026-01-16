@@ -15,7 +15,7 @@ Devpowers is a fork of superpowers, modified to support:
 
 ### Location & Scope
 
-- **Global templates:** Live in the plugin at `master-docs-templates/`
+- **Global templates:** Live in the plugin at `skills/project-setup/assets/master-doc-templates/`
 - **Project-local:** Created at `/docs/master/` during project setup
 - **Relationship:** Global templates get copied and tailored to each project
 
@@ -32,6 +32,58 @@ Devpowers is a fork of superpowers, modified to support:
   patterns/
     [stack-specific patterns discovered over time]
 ```
+
+### Template Contents
+
+**design-system.md** (tailored based on detected UI framework):
+```markdown
+# Design System
+
+## Colors
+- Primary: [detected or placeholder]
+- Secondary: [detected or placeholder]
+- Error/Success/Warning states
+
+## Typography
+- Font families
+- Size scale
+- Line heights
+
+## Spacing
+- Base unit
+- Scale (xs, sm, md, lg, xl)
+
+## Components
+- Button variants
+- Form elements
+- Card patterns
+- Navigation patterns
+
+## Responsive Breakpoints
+- Mobile/Tablet/Desktop definitions
+
+## Anti-Patterns (avoid these)
+- [Populated from lessons learned]
+```
+
+**lessons-learned/[domain].md** template:
+```markdown
+# Lessons Learned: [Domain]
+
+## Patterns That Work
+<!-- Successful approaches discovered during implementation -->
+
+## Anti-Patterns
+<!-- Approaches that failed or caused issues -->
+
+## Gotchas
+<!-- Non-obvious behaviors, edge cases, surprises -->
+
+## Useful Tools/Libraries
+<!-- Recommendations with context -->
+```
+
+**patterns/** — Initially empty, populated as patterns emerge during development.
 
 ### Setup Flow
 
@@ -132,6 +184,51 @@ All review loops follow these termination rules:
 
 ---
 
+## Agent Failure Handling
+
+When agents fail technically (timeout, crash, error), apply these recovery rules:
+
+**Retry logic:**
+- Automatic retry: 2 attempts with 5-second backoff
+- If still failing after retries, report failure and continue
+
+**Graceful degradation:**
+- If one domain critic fails during `domain-review`: "Backend critic unavailable. Proceed with 3 critics, or retry?"
+- If stack detection fails during `project-setup`: "Could not auto-detect stack. Please specify: [options] or proceed with generic templates?"
+- If subagent fails during implementation: Save partial progress, report which task failed, offer to retry or skip
+
+**Partial progress preservation:**
+- Before each significant action, note state in `STATUS.md`
+- On failure, state file shows exactly where to resume
+- Completed review findings are preserved even if aggregation fails
+
+**User notification:**
+- Always inform user of failures: "[Agent] failed: [reason]. [Recovery options]"
+- Never silently skip a failed step
+
+---
+
+## Scope Escalation
+
+When scope changes during planning (task turns out bigger than expected):
+
+**Detection triggers:**
+- Task breakdown yields >5 tasks for a "Small" scope item
+- Domain review identifies architectural changes for a "Medium" scope item
+- Any reviewer flags "this is larger than expected"
+
+**Escalation process:**
+1. Pause current workflow
+2. Present finding: "This appears larger than [current tier]. Recommend escalating to [higher tier]."
+3. Show what additional steps would apply
+4. User confirms or overrides
+5. If escalated: Insert missing steps, continue from current position
+6. Existing artifacts are preserved, not discarded
+
+**Scope can only escalate, not descend** — once in Large workflow, stay there.
+
+---
+
 ## Workflow Interruption & Recovery
 
 ### Detecting Current State
@@ -198,11 +295,14 @@ Orchestrates parallel domain-expert agents to review implementation-level task d
 **Structure:**
 ```
 skills/domain-review/
-├── SKILL.md                        # Includes severity guide inline
-├── frontend-critic-prompt.md
-├── backend-critic-prompt.md
-├── testing-critic-prompt.md
-└── infrastructure-critic-prompt.md
+├── SKILL.md
+├── prompts/
+│   ├── frontend-critic.md
+│   ├── backend-critic.md
+│   ├── testing-critic.md
+│   └── infrastructure-critic.md
+└── references/
+    └── severity-guide.md
 ```
 
 **Each domain critic checks:**
@@ -211,18 +311,105 @@ skills/domain-review/
 - Simplicity — Over-engineered?
 - Patterns — Follows master docs?
 
-**Additional responsibilities:**
-- Testing critic maintains unit test plan as design evolves
-- If task too complex → recommend chunking
+**Selective domain execution:**
+Not all critics run for every task. Detect relevant domains from task content:
+- Frontend: Task mentions UI, components, styles, user interaction
+- Backend: Task mentions API, database, server logic, authentication
+- Testing: Always runs (maintains test plan)
+- Infrastructure: Task mentions deployment, CI/CD, environment, scaling
+
+Prompt: "Detected domains: [list]. Run all, or adjust?"
+
+**Aggregation rules:**
+- Collect all findings from parallel critics
+- Group by severity (CRITICAL → IMPORTANT → MINOR → NITPICK)
+- If critics disagree on severity, take the higher severity
+- If critics have conflicting recommendations, present both to user
+
+**Test plan maintenance:**
+- Testing critic reviews task and proposes unit tests
+- Test plan updated in task doc after each domain review round
+- Other critics can flag "needs test for X" which testing critic incorporates
+
+**Chunking integration:**
+- If any critic flags "task too complex" → pause review
+- Run `task-breakdown` on the complex task
+- Resume domain review with new smaller tasks
+- Round counter resets for newly chunked tasks (they're new tasks)
+- Original round counter continues for unchanged tasks
 
 **Workflow:**
 1. Read task document(s) and relevant master docs
-2. Dispatch 4 domain critics in parallel
-3. Aggregate findings by severity (CRITICAL/IMPORTANT/MINOR/NITPICK)
-4. If task too complex → chunk and re-review
-5. Loop until converged
+2. Detect relevant domains, confirm with user
+3. Dispatch selected critics in parallel
+4. Aggregate findings by severity
+5. If chunking needed → chunk → re-review new tasks
+6. Loop until converged (max 3 rounds per task)
 
-**Trigger phrases:** "domain review", "check if implementation-ready"
+**Trigger conditions:** Use when task documents need expert validation, when checking if tasks are implementation-ready, when validating implementation details across domains.
+
+---
+
+#### `task-breakdown`
+
+Breaks a reviewed high-level plan into implementable task documents. Distinct from `chunking-plans` which handles recursive subdivision of already-created tasks.
+
+**Structure:**
+```
+skills/task-breakdown/
+├── SKILL.md
+├── prompts/
+│   └── breakdown-agent.md
+└── references/
+    └── task-sizing-guide.md
+```
+
+**What it produces:**
+- Individual task files in `/docs/plans/[feature]/tasks/`
+- `00-overview.md` with dependency map
+- Each task sized for ~30 min to 2 hours of implementation work
+
+**Workflow:**
+1. Read approved high-level plan
+2. Identify logical task boundaries (by component, by layer, by feature slice)
+3. Create task files with: goal, context, acceptance criteria, dependencies
+4. Generate `00-overview.md` with task map showing execution order
+5. Validate: each task is self-contained enough to implement independently
+
+**Trigger conditions:** Use after high-level plan review passes, when breaking architecture into implementable units, when creating task files for domain review.
+
+---
+
+#### `reviewing-plans`
+
+Reviews high-level plans for feasibility, completeness, and simplicity before task breakdown.
+
+**Structure:**
+```
+skills/reviewing-plans/
+├── SKILL.md
+├── prompts/
+│   ├── feasibility-critic.md
+│   ├── completeness-critic.md
+│   └── simplicity-critic.md
+└── references/
+    └── review-severity-guide.md
+```
+
+**Three parallel critics:**
+- **Feasibility** — Will this architecture work? Correct assumptions? Dependencies available?
+- **Completeness** — All requirements covered? Error handling? Edge cases?
+- **Simplicity** — Over-engineered? YAGNI violations? Unnecessary complexity?
+
+**Workflow:**
+1. Read high-level plan
+2. Dispatch 3 critics in parallel
+3. Aggregate findings by severity
+4. Present to user with recommended fixes
+5. Loop until converged (max 3 rounds)
+6. Handoff to `task-breakdown`
+
+**Trigger conditions:** Use after writing a high-level plan, when validating architecture before implementation, when checking if plan is ready for task breakdown.
 
 ---
 
@@ -234,7 +421,8 @@ Validates integration points between domains after individual domain reviews pas
 ```
 skills/cross-domain-review/
 ├── SKILL.md
-├── integration-critic-prompt.md
+├── prompts/
+│   └── integration-critic.md
 └── references/
     └── common-integration-issues.md
 ```
@@ -245,14 +433,24 @@ skills/cross-domain-review/
 - Error propagation — Errors flow correctly across boundaries?
 - Timing/sequencing — Async operations coordinated?
 - Dependencies — Cross-domain deps explicit and ordered?
+- External dependencies — Third-party APIs, services, infrastructure requirements
+
+**Bidirectional flow:**
+If cross-domain review finds issues requiring domain-specific changes:
+1. Identify which domain(s) need updates
+2. Route back to relevant domain critic(s) for targeted fix
+3. Domain critic proposes fix within their scope
+4. Re-run cross-domain review to verify fix
+5. Max 2 round-trips before escalating to user
 
 **Workflow:**
 1. Read all task documents + 00-overview.md (dependency map)
 2. Dispatch integration critic that sees everything
 3. Findings focus on interfaces between domains
-4. Loop if CRITICAL/IMPORTANT issues found
+4. If domain-specific fix needed → route to domain → re-verify
+5. Loop if CRITICAL/IMPORTANT issues found (max 3 rounds)
 
-**Trigger phrases:** "cross-domain review", "check integration points"
+**Trigger conditions:** Use when validating integration points, checking API contracts, reviewing frontend-backend interfaces, or verifying cross-domain dependencies.
 
 ---
 
@@ -326,9 +524,11 @@ skills/lessons-learned/
 
 ---
 
-#### `frontend-design` (fork)
+#### `frontend-design` (fork of `frontend-design:frontend-design`)
 
-Custom frontend design skill that avoids generic UI patterns.
+Custom frontend design skill that avoids generic UI patterns. Forked from the `frontend-design` plugin's skill, customized to integrate with devpowers master documents.
+
+**Fork source:** `frontend-design:frontend-design` plugin skill
 
 **Structure:**
 ```
@@ -340,19 +540,25 @@ skills/frontend-design/
     └── component-patterns/
 ```
 
-**Key behaviors:**
+**Key customizations from original:**
 - Reads `/docs/master/design-system.md` for project conventions
+- Integrates with domain review (frontend critic references this skill's principles)
+- Appends to learnings log when discovering what works
+
+**Key behaviors:**
 - Avoids generic "AI look" patterns
 - Focuses on distinctive, purposeful design
-- Appends to learnings log when discovering what works
+- Maintains project-specific component patterns
 
 **Trigger conditions:** Use when designing UI components, building frontend interfaces, creating visual designs, or when user asks for "distinctive" or "non-generic" UI.
 
 ---
 
-#### `playwright-testing` (fork)
+#### `playwright-testing` (fork of `playwright-skill:playwright-skill`)
 
-Custom e2e testing skill using journey maps.
+Custom e2e testing skill using journey maps. Forked from the `playwright-skill` plugin, customized to integrate with devpowers user journey mapping.
+
+**Fork source:** `playwright-skill:playwright-skill` plugin skill
 
 **Structure:**
 ```
@@ -366,11 +572,16 @@ skills/playwright-testing/
     └── sample-tests/
 ```
 
-**Key behaviors:**
-- Reads journey maps to ensure complete coverage
-- Reads `/docs/master/lessons-learned/testing.md` for patterns
-- Covers error states, edge cases, accessibility
+**Key customizations from original:**
+- Reads journey maps to ensure complete test coverage
+- Reads `/docs/master/lessons-learned/testing.md` for project patterns
+- Integrates with domain review (testing critic references this skill)
 - Appends to learnings log when tests reveal unexpected behavior
+
+**Key behaviors:**
+- Generates tests from user journey maps (not ad-hoc)
+- Covers error states, edge cases, accessibility per journey categories
+- Validates against journey map completeness
 
 **Trigger conditions:** Use when writing e2e tests, implementing tests from journey maps, setting up Playwright test infrastructure, or when user asks about test coverage for user flows.
 
@@ -382,21 +593,19 @@ skills/playwright-testing/
 - Output to `/docs/plans/[feature]/` structure
 - Reference master docs during design exploration
 - Create `learnings.md` file when feature folder created
+- Add scope assessment at start (trivial/small/medium/large)
 
 #### `writing-plans`
 - Focus on high-level architecture, not implementation details
 - Output to `/docs/plans/[feature]/high-level-plan.md`
 - Add handoff to `reviewing-plans`
 
-#### `reviewing-plans`
-- Move to standard skill location
-- Add instructions for critics to append to `learnings.md`
-- Update handoff to reference breakdown/domain-review flow
-
 #### `chunking-plans`
-- Support recursive chunking (tasks can be chunked further)
-- Integrate with domain review loop
-- Update output structure to match `/docs/plans/[feature]/tasks/`
+- Rename role: handles **recursive subdivision** of existing tasks (when domain review finds a task too complex)
+- Distinct from `task-breakdown` which handles **initial breakdown** from high-level plan
+- Support arbitrarily deep recursion (subtasks can have subtasks)
+- Integrate with domain review loop (called when complexity flagged)
+- Update output: subdivided tasks go in `[task]/subtasks/` folder
 
 #### `subagent-driven-development`
 - Implementation agents reference test plan in task docs
@@ -431,11 +640,17 @@ Each feature gets a learnings log that agents append to during work.
 ```markdown
 # Learnings Log: [Feature Name]
 
-## Review Phase
-<!-- Agents append here during plan review -->
+## Plan Review Phase
+<!-- Plan reviewers append here -->
+
+## Domain Review Phase
+<!-- Domain critics append here -->
 
 ## Implementation Phase
-<!-- Agents append here during implementation -->
+<!-- Implementation agents append here -->
+
+## Code Review Phase
+<!-- Code reviewers append here -->
 ```
 
 **When agents append:**
@@ -453,6 +668,26 @@ Each feature gets a learnings log that agents append to during work.
 **Resolution:** What finally worked
 **Lesson:** What to remember for next time
 ```
+
+**Parallel append coordination:**
+When multiple critics run in parallel (e.g., domain review), each critic appends to their designated subsection:
+```markdown
+## Domain Review Phase
+
+### Frontend Critic Findings
+[Frontend critic appends here]
+
+### Backend Critic Findings
+[Backend critic appends here]
+
+### Testing Critic Findings
+[Testing critic appends here]
+
+### Infrastructure Critic Findings
+[Infrastructure critic appends here]
+```
+
+The orchestrating skill creates these subsections before dispatching critics. Each critic only writes to their section, avoiding write conflicts. After critics complete, the orchestrator aggregates and deduplicates if needed.
 
 ---
 
