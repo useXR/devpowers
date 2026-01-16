@@ -47,7 +47,36 @@ Devpowers is a fork of superpowers, modified to support:
 - Implementation subagents reference them for context
 - Lessons learned skill proposes updates after each feature
 
-## Complete Workflow
+### Update & Conflict Resolution
+
+When `lessons-learned` proposes updates to master docs:
+
+1. **Read existing content** — Load current master doc section
+2. **Analyze proposed addition** — Understand what the new learning contributes
+3. **LLM-driven merge** — Agent determines how to integrate new content:
+   - If new pattern: Add to appropriate section
+   - If refinement of existing: Update existing content
+   - If contradiction: Present both to user with context, let user decide
+   - If supersedes: Replace old content, note what changed
+4. **Present diff** — Show user what will change before applying
+5. **Commit with context** — Commit message explains what was learned and why
+
+## Workflow Scope Tiers
+
+Not every change needs the full workflow. Scope determines which steps apply:
+
+| Scope | Description | Workflow |
+|-------|-------------|----------|
+| **Trivial** | Typo fix, config tweak, single-line change | Direct implementation, no planning |
+| **Small** | Bug fix, minor enhancement, <50 lines | Brainstorm → Plan → Implement → Lessons (optional) |
+| **Medium** | Feature addition, moderate complexity | Full workflow, skip user journey mapping if no UI |
+| **Large** | Major feature, architectural change | Full workflow |
+
+**Scope detection:** At brainstorming start, assess scope and confirm with user. If scope changes during planning (task turns out bigger than expected), escalate to appropriate tier.
+
+---
+
+## Complete Workflow (Large Scope)
 
 ```
 PROJECT SETUP (once per project)
@@ -56,16 +85,16 @@ BRAINSTORM → /docs/plans/[feature]/ created
     ↓
 HIGH-LEVEL PLAN → high-level-plan.md
     ↓
-REVIEWING-PLANS (feasibility/completeness/simplicity) → loop
+REVIEWING-PLANS (feasibility/completeness/simplicity) → loop (max 3 rounds)
     ↓
 BREAK INTO TASKS → /tasks/ folder
     ↓
-DOMAIN REVIEW (frontend/backend/testing/infra) → loop, chunk if needed
+DOMAIN REVIEW (frontend/backend/testing/infra) → loop (max 3 rounds), chunk if needed
   └─ Testing critic maintains unit test plan
     ↓
 CROSS-DOMAIN REVIEW → integration validated
     ↓
-USER JOURNEY MAPPING → e2e test plan
+USER JOURNEY MAPPING → e2e test plan (skip for non-UI features)
     ↓
 WORKTREE
     ↓
@@ -75,6 +104,58 @@ LESSONS LEARNED → master doc updates
     ↓
 FINISH BRANCH
 ```
+
+---
+
+## Review Loop Rules
+
+All review loops follow these termination rules:
+
+**Maximum iterations:** 3 rounds per review stage
+- Round 1: Initial review, identify issues
+- Round 2: Verify fixes, find remaining issues
+- Round 3: Final verification
+
+**After 3 rounds without convergence:**
+> "Review has not converged after 3 rounds. Remaining issues:
+> [list CRITICAL/IMPORTANT issues]
+>
+> Options:
+> 1. Accept with known issues and proceed
+> 2. Escalate for manual review
+> 3. Abort and reconsider approach"
+
+**Convergence criteria:**
+- No CRITICAL issues remaining
+- No IMPORTANT issues remaining (or explicitly accepted)
+- MINOR/NITPICK issues can proceed to next stage
+
+---
+
+## Workflow Interruption & Recovery
+
+### Detecting Current State
+
+Each skill checks for existing artifacts to determine workflow state:
+- `/docs/master/` exists → project setup complete
+- `/docs/plans/[feature]/` exists → brainstorming done
+- `high-level-plan.md` exists → planning done
+- `/tasks/` folder exists → breakdown done
+
+On resume, detect state and prompt: "Found existing [artifacts]. Continue from [stage]?"
+
+### Aborting a Workflow
+
+At any handoff prompt, user can respond with "abort" to trigger cleanup:
+
+1. **Confirm scope of abort:** "Abort this feature entirely, or just pause?"
+2. **If abort entirely:**
+   - Archive `/docs/plans/[feature]/` to `/docs/plans/archived/[feature]-[date]/`
+   - Delete worktree if created
+   - Prompt: "Feature archived. Start fresh or work on something else?"
+3. **If pause:**
+   - Note current state in `/docs/plans/[feature]/STATUS.md`
+   - Prompt: "Paused at [stage]. Resume anytime by opening this feature."
 
 ## Skills Inventory
 
@@ -106,7 +187,7 @@ skills/project-setup/
 4. Writes tailored docs to `/docs/master/`
 5. Commits initial master docs
 
-**Trigger phrases:** "set up devpowers", "initialize master docs", "configure project"
+**Trigger conditions:** Use when starting a new project that needs master documents, when project has no `/docs/master/` directory, or after cloning a fresh repo that uses devpowers.
 
 ---
 
@@ -117,13 +198,11 @@ Orchestrates parallel domain-expert agents to review implementation-level task d
 **Structure:**
 ```
 skills/domain-review/
-├── SKILL.md
+├── SKILL.md                        # Includes severity guide inline
 ├── frontend-critic-prompt.md
 ├── backend-critic-prompt.md
 ├── testing-critic-prompt.md
-├── infrastructure-critic-prompt.md
-└── references/
-    └── severity-guide.md
+└── infrastructure-critic-prompt.md
 ```
 
 **Each domain critic checks:**
@@ -267,6 +346,8 @@ skills/frontend-design/
 - Focuses on distinctive, purposeful design
 - Appends to learnings log when discovering what works
 
+**Trigger conditions:** Use when designing UI components, building frontend interfaces, creating visual designs, or when user asks for "distinctive" or "non-generic" UI.
+
 ---
 
 #### `playwright-testing` (fork)
@@ -290,6 +371,8 @@ skills/playwright-testing/
 - Reads `/docs/master/lessons-learned/testing.md` for patterns
 - Covers error states, edge cases, accessibility
 - Appends to learnings log when tests reveal unexpected behavior
+
+**Trigger conditions:** Use when writing e2e tests, implementing tests from journey maps, setting up Playwright test infrastructure, or when user asks about test coverage for user flows.
 
 ---
 
