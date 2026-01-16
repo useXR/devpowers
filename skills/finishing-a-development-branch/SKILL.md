@@ -15,6 +15,12 @@ Guide completion of development work by presenting clear options and handling ch
 
 ## The Process
 
+### Step 0: Prerequisites
+
+Before finishing, ensure:
+1. **Learnings captured** - Use devpowers:lessons-learned skill if not already done
+2. **Verification ready** - Use devpowers:verification-before-completion skill
+
 ### Step 1: Verify Tests
 
 **Before presenting options, verify tests pass:**
@@ -196,5 +202,9 @@ git worktree remove <worktree-path>
 - **subagent-driven-development** (Step 7) - After all tasks complete
 - **executing-plans** (Step 5) - After all batches complete
 
+**Prerequisites (use before this skill):**
+- **devpowers:lessons-learned** - Capture insights before finishing
+- **devpowers:verification-before-completion** - Verify all claims before finishing
+
 **Pairs with:**
-- **using-git-worktrees** - Cleans up worktree created by that skill
+- **devpowers:using-git-worktrees** - Cleans up worktree created by that skill

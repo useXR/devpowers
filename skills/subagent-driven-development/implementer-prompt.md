@@ -33,6 +33,11 @@ Task tool (general-purpose):
     - **E2E tests**: Use devpowers:playwright-testing skill. Derive tests from /docs/plans/[feature]/journeys/.
     - **All tasks**: Use devpowers:test-driven-development skill for TDD workflow.
 
+    ## When Things Go Wrong
+
+    - **Bug or unexpected behavior**: Use devpowers:systematic-debugging skill. Do NOT guess at fixes.
+    - **Before claiming "done"**: Use devpowers:verification-before-completion skill. Evidence before claims.
+
     ## Your Job
 
     Once you're clear on requirements:
