@@ -102,6 +102,13 @@ After journeys complete, update STATUS.md:
 - Last Action: User journeys mapped
 - Next Action: Create worktree
 
+## E2E Test Implementation
+
+When E2E tests are implemented during subagent-driven-development:
+- Implementer subagents use **devpowers:playwright-testing** skill
+- Tests are derived from journey documents in `/docs/plans/[feature]/journeys/`
+- Each journey maps to one or more test cases
+
 ## Handoff
 
 "User journey mapping complete. Created [N] journeys in `/docs/plans/[feature]/journeys/`.

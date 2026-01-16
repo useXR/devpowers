@@ -26,15 +26,23 @@ Task tool (general-purpose):
 
     **Ask them now.** Raise any concerns before starting work.
 
+    ## Domain-Specific Skills
+
+    Use these skills based on task type:
+    - **UI components**: Use devpowers:frontend-design skill. Read /docs/master/design-system.md first.
+    - **E2E tests**: Use devpowers:playwright-testing skill. Derive tests from /docs/plans/[feature]/journeys/.
+    - **All tasks**: Use devpowers:test-driven-development skill for TDD workflow.
+
     ## Your Job
 
     Once you're clear on requirements:
-    1. Implement exactly what the task specifies
-    2. Write tests (following TDD if task says to)
-    3. Verify implementation works
-    4. Commit your work
-    5. Self-review (see below)
-    6. Report back
+    1. Invoke relevant domain-specific skill (see above)
+    2. Implement exactly what the task specifies
+    3. Write tests (following TDD if task says to)
+    4. Verify implementation works
+    5. Commit your work
+    6. Self-review (see below)
+    7. Report back
 
     Work from: [directory]
 
