@@ -1,0 +1,17 @@
+# Force LF line endings for all text files
+* text=auto eol=lf
+
+# Explicitly mark script files
+*.sh text eol=lf
+*.py text eol=lf
+*.js text eol=lf
+
+# Markdown files
+*.md text eol=lf
+
+# JSON files
+*.json text eol=lf
+
+# Keep Windows batch files with CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
