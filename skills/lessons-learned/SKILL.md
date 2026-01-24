@@ -18,6 +18,9 @@ Master documents live in `/docs/master/` and contain accumulated project knowled
 - `lessons-learned/testing.md` — Testing-specific learnings
 - `lessons-learned/infrastructure.md` — Infrastructure-specific learnings
 - `patterns/` — Reusable code patterns discovered over time
+- `architecture-decisions.md` — ADRs from architectural assessments
+
+**Also consider:** `CLAUDE.md` (project root) — Claude Code configuration and conventions
 
 ## Review Loop
 
@@ -33,6 +36,43 @@ This skill uses review loops:
 - **New tools/procedures** — Utilities or workflows created
 - **Anti-patterns** — What didn't work
 - **Corrections** — Master doc content that was wrong
+
+## CLAUDE.md Updates
+
+`CLAUDE.md` in the project root configures Claude Code behavior. Update it when learnings affect how Claude should approach future work in this project.
+
+### When to Update CLAUDE.md
+
+| Learning Type | Update CLAUDE.md? | Example |
+|---------------|-------------------|---------|
+| Architectural decision | Yes | "This project uses DDD patterns - prefer entities and value objects over anemic models" |
+| Project-wide convention | Yes | "Always use Zod for runtime validation in this codebase" |
+| Workflow preference | Yes | "Run `pnpm test` before committing" |
+| Domain-specific pattern | No (use master docs) | How to implement a specific feature pattern |
+| One-time fix | No | Bug fix details |
+| Tool-specific learning | No (use master docs) | How a library works |
+
+### CLAUDE.md vs Master Docs
+
+| CLAUDE.md | Master Docs |
+|-----------|-------------|
+| How Claude should behave | What we've learned |
+| Imperatives ("always do X") | Knowledge ("X works because Y") |
+| Cross-cutting concerns | Domain-specific details |
+| Persistent across sessions | Reference material |
+
+### CLAUDE.md Update Format
+
+Append to appropriate section (or create one):
+
+```markdown
+## [Section Name]
+
+- [Imperative statement about what to do]
+- [Another convention or preference]
+```
+
+Keep entries concise - CLAUDE.md is read every session.
 
 ## Two Sources of Learnings
 
@@ -108,10 +148,11 @@ Previous: [if SUPERSEDE, what was replaced]
 2. Review artifacts (plan, tasks, git diff/log)
 3. Categorize findings by master doc section
 4. Apply merge algorithm for each finding
-5. Present proposed updates with diffs
-6. On approval, apply updates
-7. Commit changes with context
-8. Update STATUS.md
+5. **Check for CLAUDE.md updates** — Do any learnings affect how Claude should work in this project?
+6. Present proposed updates with diffs (master docs and CLAUDE.md separately)
+7. On approval, apply updates
+8. Commit changes with context (separate commits for master docs vs CLAUDE.md)
+9. Update STATUS.md
 
 ## Handoff
 
