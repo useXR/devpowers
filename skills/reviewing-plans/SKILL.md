@@ -22,12 +22,24 @@ It does NOT review:
 - Integration between domains (that's `cross-domain-review`)
 - Actual code (that's code reviewers)
 
-## Review Loop
+## Review Loop: Convergence-Based
 
-This skill uses review loops. Follow the central review loop rules:
-- Maximum 3 rounds per review stage
-- Convergence: No CRITICAL or IMPORTANT issues
-- After 3 rounds: Present user with accept/escalate/abort options
+**NOT round-based.** Keep iterating until convergence:
+
+```
+CONVERGED when:
+- 2 consecutive rounds find 0 new CRITICAL issues AND
+- 2 consecutive rounds find 0 new IMPORTANT issues
+- (MINOR issues do not block convergence)
+
+ESCALATE when:
+- 5+ rounds without convergence → ask user to intervene
+- Issue count is stable but not decreasing → likely fundamental problem
+```
+
+**Why 2 consecutive rounds?** A single clean round could be lucky. Two consecutive clean rounds indicates stable convergence.
+
+**What counts as "new"?** An issue is new if it identifies a problem not previously flagged. Rephrased versions of existing issues don't count as new.
 
 ## Workflow Position
 
@@ -41,18 +53,44 @@ writing-plans → reviewing-plans → task-breakdown
 
 Read the plan file. Extract:
 - Goal and architecture
-- All tasks with their steps
+- All tasks/components with their descriptions
 - Any assumptions or constraints mentioned
+- Technology choices and dependencies
 
-### Step 2: Dispatch Critics (Parallel)
+### Step 2: Dispatch Critics (Parallel, Flexible)
 
-Launch 3 subagents simultaneously using the Task tool with `subagent_type: "general-purpose"`:
+**Do NOT use predefined critics.** Instead, spin up multiple subagents to critique the plan. Let the LLM decide how many based on plan complexity.
 
-1. **Feasibility Critic** - Read `./feasibility-critic.md`, replace `{PLAN_CONTENT}` with actual plan
-2. **Completeness Critic** - Read `./completeness-critic.md`, replace `{PLAN_CONTENT}` with actual plan
-3. **Simplicity Critic** - Read `./simplicity-critic.md`, replace `{PLAN_CONTENT}` with actual plan
+Each subagent should receive this prompt:
 
-All three must run in parallel (single message with 3 Task tool calls).
+```
+Critically review this plan. Your job is to find issues that would cause
+problems during implementation.
+
+Look for BOTH:
+1. What's WRONG with what's here (issues in existing content)
+2. What's MISSING that should be here (gaps in coverage)
+
+Categories to consider:
+- Feasibility: Will this approach actually work?
+- Completeness: Are all cases covered?
+- Simplicity: Is this over-engineered?
+- Security: Are there security risks?
+- Integration: Will this work with existing systems?
+
+For each issue, provide:
+- Severity: CRITICAL (blocks execution) / IMPORTANT (high risk) / MINOR (friction)
+- Location: Where in the plan
+- Issue: What's wrong or missing
+- Fix: Specific correction
+
+End with: "Found X critical, Y important, Z minor issues."
+
+Plan to review:
+{PLAN_CONTENT}
+```
+
+Launch subagents simultaneously using the Task tool. Each will independently decide what to focus on based on the plan content.
 
 ### Step 3: Aggregate Findings
 
@@ -65,7 +103,52 @@ Collect all issues and organize by severity:
 | **MINOR** | May cause friction | Can address during implementation |
 | **NITPICK** | Pedantic | Ignore |
 
-### Step 4: Present Results
+Deduplicate issues found by multiple critics.
+
+### Step 4: Check Convergence
+
+**If CRITICAL or IMPORTANT issues found:**
+- Apply fixes (or let user modify)
+- Return to Step 2 (new round)
+
+**If only MINOR/NITPICK issues found:**
+- Proceed to Step 5 (Fresh Skeptic Pass)
+
+### Step 5: Fresh Skeptic Pass
+
+**After initial convergence, one final pass with fresh perspective:**
+
+Spin up 1 subagent with this prompt:
+
+```
+You are reviewing this plan with fresh eyes. The previous reviewers found and
+fixed several issues, and the plan now appears ready. Your job is NOT to
+manufacture problems, but to ask the questions that might not have been asked.
+
+Investigate:
+- What assumptions does this plan make that weren't explicitly verified?
+- What edge cases or failure modes weren't discussed?
+- What integration points with existing systems weren't addressed?
+- What security implications might have been overlooked?
+- What happens if a key dependency doesn't work as expected?
+
+Be calibrated: If you genuinely find nothing significant after thorough review,
+say "Plan passes skeptic review - no significant gaps found." Do not manufacture
+issues to justify your role.
+
+If you DO find CRITICAL or IMPORTANT issues, list them with:
+- What's missing or wrong
+- Why it matters
+- Suggested fix
+
+Plan to review:
+{PLAN_CONTENT}
+```
+
+**If skeptic finds CRITICAL/IMPORTANT issues:** Return to Step 2
+**If skeptic approves:** Proceed to Step 6
+
+### Step 6: Present Final Results
 
 Format findings for the user:
 
@@ -73,48 +156,36 @@ Format findings for the user:
 ## Plan Review: [Plan Name]
 
 ### Summary
-- Critical: X issues
-- Important: Y issues
-- Minor: Z issues
+- Rounds completed: X
+- Issues fixed: Y
+- Remaining minor issues: Z
 
-### Critical Issues (Must Fix)
-[List each with location, issue, and suggested fix]
-
-### Important Issues (Should Fix)
-[List each with location, issue, and suggested fix]
+### Review History
+| Round | Critics | CRIT | IMP | MIN | Outcome |
+|-------|---------|------|-----|-----|---------|
+| 1 | 2 | 3 | 5 | 2 | Fixed, continued |
+| 2 | 2 | 0 | 2 | 3 | Fixed, continued |
+| 3 | 2 | 0 | 0 | 1 | Converged |
+| Skeptic | 1 | 0 | 0 | 0 | Passed |
 
 ### Minor Issues (Can Defer)
 [List briefly - these can be addressed during implementation]
 
----
-
 ### Recommendation
-[See Step 5]
+Plan is ready for task breakdown. The minor issues can be addressed during implementation.
 ```
 
-### Step 5: Recommend Next Steps
+### Step 7: Task Breakdown Handoff
 
-Based on findings, recommend one of:
+When ready to proceed:
 
-**If Critical issues exist:**
-> "This plan has critical issues that would block execution. I recommend fixing these before proceeding. Would you like me to apply the suggested fixes, or would you prefer to modify the plan manually?"
+> "Plan review complete. [X rounds, Y issues fixed, skeptic passed].
+>
+> Ready to break into implementable tasks?"
 
-**If only Important issues exist:**
-> "This plan has important issues that could cause problems during execution. I recommend addressing these before starting. Another review round after fixes would help verify the changes. Apply fixes?"
+**REQUIRED SUB-SKILL:** Use devpowers:task-breakdown
 
-**If only Minor/Nitpick issues:**
-> "This plan is ready for execution. The minor issues found can be addressed during implementation. Proceed with execution?"
-
-### Step 6: Handle User Response
-
-Based on user choice:
-
-- **"Apply fixes"** → Edit the plan file with suggested fixes, update revision history, then offer another review round
-- **"Modify manually"** → Wait for user to edit, then offer to re-review
-- **"Another round"** → Return to Step 2
-- **"Proceed"** → Handoff to execution
-
-### Step 6a: Record Changes (When Applying Fixes)
+## Recording Changes
 
 After applying fixes, append to the **Revision History** section at the end of the plan:
 
@@ -126,113 +197,37 @@ After applying fixes, append to the **Revision History** section at the end of t
 ### v2 - YYYY-MM-DD - Plan Review Round 1
 
 **Issues Addressed:**
-- [CRITICAL] Task 3, Step 2: Fixed bcrypt API (Feasibility)
-- [IMPORTANT] Task 2: Added token expiry handling (Completeness)
-- [IMPORTANT] Task 4: Added session limit test (Completeness)
+- [CRITICAL] Task 3, Step 2: Fixed bcrypt API
+- [IMPORTANT] Task 2: Added token expiry handling
 
-**Reviewer Notes:** Plan had critical API compatibility issue that would have caused immediate failure.
+**Reviewer Notes:** Plan had critical API compatibility issue.
+
+### v3 - YYYY-MM-DD - Plan Review Round 2
+
+**Issues Addressed:**
+- [IMPORTANT] Added rate limiting consideration
+
+**Reviewer Notes:** Convergence reached. Skeptic pass clean.
 ```
 
-If the section doesn't exist, create it. If it exists, append a new version entry.
+## Severity Reference
 
-This creates an audit trail showing:
-- What changed between versions
-- Why it changed (which critic, what severity)
-- When changes were made
+Read `./references/severity-guide.md` for detailed severity classification guidance.
 
-### Step 7: Task Breakdown Handoff
+## Escalation
 
-When ready to proceed:
+If 5 rounds without convergence:
 
-> "Plan review complete. [Summary of findings/fixes].
+> "This plan has gone through 5 review rounds without converging. This usually means:
+> 1. The plan has fundamental issues that fixes aren't addressing
+> 2. The scope is too large and should be split
+> 3. Requirements are unclear and need user clarification
 >
-> Ready to break into implementable tasks?"
-
-**REQUIRED SUB-SKILL:** Use devpowers:task-breakdown
-
-## Convergence Detection
-
-A plan has converged when:
-- No CRITICAL issues found
-- No IMPORTANT issues found
-- Only MINOR/NITPICK issues remain (or none)
-
-After each round, evaluate:
-- If CRITICAL found → "Must fix, then review again"
-- If only IMPORTANT found → "Should fix, recommend one more round"
-- If only MINOR found → "Ready to proceed, minor issues can be handled during implementation"
-- If only NITPICK found → "Plan is solid, proceed with confidence"
-
-## Example Workflow
-
-```
-You: I'm using the reviewing-plans skill to critically review this plan.
-
-[Read docs/plans/2024-01-15-auth-feature.md]
-[Dispatch 3 critic subagents in parallel]
-
-Feasibility Critic: Found 1 critical, 2 minor issues
-Completeness Critic: Found 0 critical, 3 important, 1 minor issues
-Simplicity Critic: Found 0 critical, 1 important, 2 minor issues
-
-## Plan Review: Auth Feature
-
-### Summary
-- Critical: 1 issue
-- Important: 4 issues
-- Minor: 5 issues
-
-### Critical Issues (Must Fix)
-
-**Task 3, Step 2: bcrypt version incompatibility**
-The plan uses `bcrypt.hash(password, 10)` but the installed bcrypt@5.x
-changed the API to require a salt object. Fix: Use `bcrypt.genSalt(10)`
-then `bcrypt.hash(password, salt)`.
-
-### Important Issues (Should Fix)
-
-1. **Task 2: Missing password reset error handling** - No handling for
-   expired tokens. Add token expiry check before reset.
-
-2. **Task 4: No test for concurrent session limit** - Plan mentions
-   limiting to 5 sessions but no test verifies enforcement.
-
-[...]
-
-### Recommendation
-This plan has a critical issue (bcrypt API) that would cause immediate
-failure. I recommend fixing this and the important issues before
-proceeding. Would you like me to apply the suggested fixes?
-
-User: Yes, apply the fixes
-
-[Edit plan file with fixes]
-[Append to Revision History section:]
-  ### v2 - 2024-01-15 - Plan Review Round 1
-  **Issues Addressed:**
-  - [CRITICAL] Task 3, Step 2: Fixed bcrypt API (Feasibility)
-  - [IMPORTANT] Task 2: Added token expiry handling (Completeness)
-  - [IMPORTANT] Task 4: Added session limit test (Completeness)
-  **Reviewer Notes:** Critical API compatibility issue fixed.
-
-You: Fixes applied and recorded in revision history. I recommend one
-more review round to verify the changes. Run another review?
-
-User: Yes
-
-[Dispatch critics again]
-
-All critics: No critical or important issues. 2 minor, 1 nitpick.
-
-### Recommendation
-Plan is ready for execution. The minor issues can be addressed during
-implementation. Proceed with execution?
-
-User: Yes, subagent-driven
-
-You: I'm using the subagent-driven-development skill to execute this plan.
-[Continues with subagent-driven-development skill]
-```
+> Options:
+> - Continue reviewing (not recommended)
+> - Split into smaller features
+> - Clarify requirements with user
+> - Accept current state and proceed (risks remain)"
 
 ## Integration
 
@@ -248,8 +243,8 @@ You: I'm using the subagent-driven-development skill to execute this plan.
 - Skip review for complex plans (> 5 tasks or unfamiliar domain)
 - Proceed with CRITICAL issues unfixed
 - Apply fixes without showing user what changed
-- Run more than 3 review rounds (diminishing returns - proceed with IMPORTANT if stuck)
+- Skip the skeptic pass (fresh perspective catches what familiarity misses)
 
-**If critics disagree:**
-- Feasibility trumps simplicity (can't simplify what won't work)
-- Completeness and simplicity may conflict - present both views to user
+**When critics find different issues:**
+- This is good - different perspectives catch different things
+- Combine all findings, deduplicate, prioritize by severity
