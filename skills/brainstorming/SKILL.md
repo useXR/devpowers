@@ -20,12 +20,54 @@ Before brainstorming, assess scope:
 
 Ask user to confirm scope if unclear.
 
+## Architectural Assessment (Medium+ Scope)
+
+For Medium and Large scope features, assess architectural approach after understanding the feature's purpose.
+
+### Step 1: Check Existing ADRs
+
+If `/docs/master/architecture-decisions.md` exists:
+- Read it and identify decisions relevant to the current feature's domain
+- Note these for context during assessment
+
+### Step 2: Assess Four Dimensions
+
+Ask these questions (can combine if context is already clear):
+
+| Dimension | Question | Scale |
+|-----------|----------|-------|
+| **Business Logic Complexity** | Is this mostly data storage/retrieval, or are there significant business rules, validations, or state transitions? | Low (CRUD) → Medium (some rules) → High (complex workflows) |
+| **Data Relationships** | Are we dealing with simple independent entities, or complex aggregates with invariants? | Simple (flat) → Moderate (related) → Complex (aggregates) |
+| **Domain Expert Involvement** | Is this a technical/internal tool, or will business stakeholders define and evolve the rules? | None → Some → High |
+| **Change Frequency** | Are the rules well-understood and stable, or will they evolve frequently? | Stable → Moderate → Frequent |
+
+See `./references/architectural-dimensions.md` for detailed scoring guidance.
+
+### Step 3: Recommend Approach
+
+Based on dimension scores and any relevant past ADRs:
+- Synthesize a recommendation (open-ended, not from a fixed list)
+- Include rationale tied to dimension scores
+- Note consistency with or divergence from past decisions
+- If diverging from past ADRs, explicitly justify why
+
+Get user confirmation before proceeding.
+
+### Step 4: Record Decision
+
+After brainstorming completes, if architectural approach was assessed:
+- Append new ADR to `/docs/master/architecture-decisions.md`
+- Create the file from template if it doesn't exist
+
+**Skip this section for Trivial/Small scope** — these fit into existing architecture by definition.
+
 ## Before Brainstorming
 
 Read master docs for context:
 - `/docs/master/design-system.md` — UI patterns to follow
 - `/docs/master/lessons-learned/` — Past learnings to consider
 - `/docs/master/patterns/` — Established patterns
+- `/docs/master/architecture-decisions.md` — Past architectural decisions (if exists)
 
 ## The Process
 

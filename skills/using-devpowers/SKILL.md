@@ -121,7 +121,7 @@ domain-review (with hard gates) → implement → verify → lessons-learned (op
 **What runs:**
 | Step | What | Why |
 |------|------|-----|
-| Brainstorming | Full exploration | Understand requirements and approach |
+| Brainstorming | Full exploration + architectural assessment | Understand requirements, assess domain complexity, choose approach |
 | Writing Plans | High-level plan with spike verification | Document approach, verify risky assumptions |
 | Reviewing Plans | Multiple critics until convergence + skeptic pass | Catch issues before implementation |
 | Task Breakdown | Create task files | Organize implementation |
@@ -204,6 +204,7 @@ Is this an architectural change or new subsystem?
 
 | Gate | Trivial | Small | Medium | Large |
 |------|---------|-------|--------|-------|
+| Architectural Assessment | Skip | Skip | Required | Required |
 | Security Checklist | Skip | Mental | Required | Required |
 | Test Plan (coverage categories) | Skip | Required | Required | Required |
 | Spike Verification | Skip | If needed | Required for new deps | Required |
