@@ -18,7 +18,24 @@
 <!-- Domain critics append here -->
 
 ## Implementation Phase
-<!-- Implementation agents append here -->
+
+### Parallel Task Execution
+- **Tasks 1-4 ran in parallel** successfully using subagent-driven-development
+- **Task 4 subagent failed** due to bash permission denial in automated context - completed manually
+- **Lesson:** Subagents running bash commands in background may hit permission issues; have fallback plan
+
+### detect-stack.sh Enhancements
+- **jq preferred** for JSON parsing - safer than grep for complex scripts
+- **printf %q escaping** works well for safe output of potentially dangerous values
+- **Package manager detection** (yarn.lock, pnpm-lock.yaml) should happen before command prefix
+
+### Hook JSON Structure
+- **Claude Code hooks** require nested `hooks` array: `{ "SessionStart": [{ "hooks": [...] }] }`
+- **Cross-platform paths:** Use `${HOME}/.claude/logs/` not `/tmp` for Windows compatibility
+
+### Agent Templates
+- **Single placeholder per template** keeps substitution simple and safe
+- **Validation important:** Reject commands with shell metacharacters before substitution
 
 ## Code Review Phase
 <!-- Code reviewers append here -->
