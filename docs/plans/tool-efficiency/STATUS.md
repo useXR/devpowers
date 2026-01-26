@@ -1,10 +1,10 @@
 # Workflow Status: Tool Efficiency
 
 ## Current State
-- **Stage:** brainstorming (complete)
+- **Stage:** high-level-plan (complete)
 - **Scope:** medium
 - **Last Updated:** 2026-01-26
-- **Last Action:** Brainstorming complete
+- **Last Action:** High-level plan written (spike verified: agents support model routing, not skills)
 
 ## Sub-State (for review loops)
 - **Review Round:** 1 of 3
@@ -13,7 +13,7 @@
 
 ## Progress
 - [x] Brainstorming complete
-- [ ] High-level plan written
+- [x] High-level plan written
 - [ ] Plan review converged (round _/3)
 - [ ] Tasks broken down
 - [ ] Domain review converged (round _/3)

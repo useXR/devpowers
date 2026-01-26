@@ -26,30 +26,30 @@ Reduce Opus token usage by:
 
 ## Architecture
 
-### Skill Structure
+**CORRECTION:** Spike verification revealed that `model` routing is only supported for **agents**, not skills. Design adjusted accordingly.
+
+### Agent Structure
 
 ```
-devpowers/skills/
-├── git-status/
-│   └── SKILL.md          # Universal, model: haiku
-├── git-sync/
-│   └── SKILL.md          # Universal, model: haiku
-├── git-push/
-│   └── SKILL.md          # Universal, model: haiku
-└── project-setup/
-    ├── SKILL.md          # Updated workflow
-    ├── scripts/
-    │   └── detect-stack.sh
-    └── assets/
-        ├── skill-templates/
-        │   ├── test/SKILL.md
-        │   ├── lint/SKILL.md
-        │   ├── typecheck/SKILL.md
-        │   └── build/SKILL.md
-        ├── dora/
-        │   └── SKILL.md
-        └── hooks/
-            └── dora-hooks.json
+devpowers/agents/
+├── git-status.md         # Universal, model: haiku
+├── git-sync.md           # Universal, model: haiku
+└── git-push.md           # Universal, model: haiku
+
+devpowers/skills/project-setup/
+├── SKILL.md              # Updated workflow
+├── scripts/
+│   └── detect-stack.sh
+└── assets/
+    ├── agent-templates/
+    │   ├── test.md
+    │   ├── lint.md
+    │   ├── typecheck.md
+    │   └── build.md
+    ├── dora/
+    │   └── SKILL.md
+    └── hooks/
+        └── dora-hooks.json
 ```
 
 ### Project Output (TypeScript example)
@@ -57,17 +57,14 @@ devpowers/skills/
 ```
 .claude/
 ├── settings.local.json     # Includes dora hooks
-└── skills/
-    ├── dora/
-    │   └── SKILL.md → ../../../.dora/docs/SKILL.md
-    ├── test/
-    │   └── SKILL.md        # Customized: "npm test"
-    ├── lint/
-    │   └── SKILL.md        # Customized: "npm run lint"
-    ├── typecheck/
-    │   └── SKILL.md        # Customized: "npx tsc --noEmit"
-    └── build/
-        └── SKILL.md        # Customized: "npm run build"
+├── skills/
+│   └── dora/
+│       └── SKILL.md → ../../../.dora/docs/SKILL.md
+└── agents/
+    ├── test.md             # Customized: "npm test"
+    ├── lint.md             # Customized: "npm run lint"
+    ├── typecheck.md        # Customized: "npx tsc --noEmit"
+    └── build.md            # Customized: "npm run build"
 
 .dora/
 ├── config.json
@@ -78,13 +75,14 @@ devpowers/skills/
 
 ### Model Routing
 
-Via skill frontmatter:
+Via agent frontmatter (agents support `model`, skills do not):
 
 ```markdown
 ---
 name: test
 model: haiku
 description: Run project tests and report results
+tools: Bash
 ---
 ```
 
@@ -126,31 +124,30 @@ description: Run project tests and report results
 | Python + pytest | `pytest` | `ruff check .` | `pyright` | N/A |
 | Rust | `cargo test` | `cargo clippy` | N/A | `cargo build` |
 
-## Haiku Skill Design
+## Haiku Agent Design
 
 **Principles:**
 - Minimal instructions (~50-100 words)
 - Execute and report - no reasoning
 - Facts only: pass/fail, errors with locations
 - Fail fast - report problems, don't fix
+- Agents run in isolated context (don't pollute main conversation)
 
-**Example (`/test`):**
+**Example (`test` agent):**
 
 ```markdown
 ---
 name: test
 model: haiku
-description: Run project tests and report results
+description: Run project tests and report results. Use when tests need to be run.
+tools: Bash
 ---
-
-# Test
 
 Execute the test command and report results.
 
-## Command
-`npm test`
+Command: `npm test`
 
-## Output Format
+Report:
 - Total tests, passed, failed, skipped
 - For failures: test name, file:line, error message
 - Exit code
@@ -158,16 +155,15 @@ Execute the test command and report results.
 Do not analyze or suggest fixes. Just report results.
 ```
 
-**Example (`/git-status`):**
+**Example (`git-status` agent):**
 
 ```markdown
 ---
 name: git-status
 model: haiku
-description: Show git repository status
+description: Show git repository status. Use to check current branch and changes.
+tools: Bash
 ---
-
-# Git Status
 
 Run `git status` and `git diff --stat`.
 
@@ -185,10 +181,10 @@ Keep output concise.
 
 | Skill | Change |
 |-------|--------|
-| `using-devpowers` | Add note about haiku-routed skills |
-| `systematic-debugging` | Reference `/test` and dora |
-| `test-driven-development` | Reference `/test` for iterations |
-| `verification-before-completion` | Reference `/test`, `/lint`, `/typecheck` |
+| `using-devpowers` | Add note about haiku-routed agents |
+| `systematic-debugging` | Reference test agent and dora |
+| `test-driven-development` | Reference test agent for iterations |
+| `verification-before-completion` | Reference test, lint, typecheck agents |
 
 ## Out of Scope
 
