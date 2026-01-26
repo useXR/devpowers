@@ -1,10 +1,10 @@
 # Workflow Status: Token Efficiency Refactor
 
 ## Current State
-- **Stage:** reviewing-plans (complete)
+- **Stage:** task-breakdown
 - **Scope:** medium
 - **Last Updated:** 2026-01-26
-- **Last Action:** Plan review converged (3 rounds + skeptic pass)
+- **Last Action:** 7 tasks created
 
 ## Sub-State (for review loops)
 - **Review Round:** N/A
@@ -15,7 +15,7 @@
 - [x] Brainstorming complete
 - [x] High-level plan written
 - [x] Plan review converged (3 rounds + skeptic)
-- [ ] Tasks broken down
+- [x] Tasks broken down (7 tasks)
 - [ ] Domain review converged (round _/3)
 - [ ] Cross-domain review passed (round _/3)
 - [x] User journeys mapped [skipped: no UI]
@@ -31,8 +31,8 @@ None
 None yet
 
 ## Next Action
-Break into implementable tasks (task-breakdown skill)
+Domain review of tasks
 
 ## Recovery Info
-- **Partial Progress:** Reviewed plan at high-level-plan.md (v3)
-- **Resume Command:** Invoke `devpowers:task-breakdown`
+- **Partial Progress:** 7 task files at /docs/plans/token-efficiency/tasks/
+- **Resume Command:** Invoke `devpowers:domain-review`
