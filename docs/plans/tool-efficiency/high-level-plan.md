@@ -69,9 +69,82 @@ Extended workflow:
 5. **NEW:** Generate stack-specific agents
 6. Commit and handoff
 
-## 2. Data Flow
+## 2. Specifications (Reviewer-Requested)
 
-### Agent Invocation Flow
+### 2.1 Hook Merging Algorithm
+
+When merging dora hooks into `settings.local.json`:
+
+```
+1. Read existing settings.local.json (or create empty {})
+2. Parse hooks object (or create empty {hooks: {}})
+3. For each dora hook event (SessionStart, Stop):
+   a. Get existing hooks array for that event (or create [])
+   b. Append dora hook entry to array
+   c. Preserve all existing hooks
+4. Write merged result back to settings.local.json
+```
+
+**Dora hooks to add:**
+```json
+{
+  "hooks": {
+    "SessionStart": [{"type": "command", "command": "dora status 2>/dev/null && (dora index > /tmp/dora-index.log 2>&1 &) || echo 'dora not initialized'"}],
+    "Stop": [{"type": "command", "command": "(dora index > /tmp/dora-index.log 2>&1 &) || true"}]
+  }
+}
+```
+
+### 2.2 Template Substitution Format
+
+Agent templates use `{{PLACEHOLDER}}` syntax:
+
+| Placeholder | Source | Example Values |
+|-------------|--------|----------------|
+| `{{TEST_COMMAND}}` | detect-stack.sh | `npm test`, `pytest`, `cargo test` |
+| `{{LINT_COMMAND}}` | detect-stack.sh | `npm run lint`, `ruff check .`, `cargo clippy` |
+| `{{TYPECHECK_COMMAND}}` | detect-stack.sh | `npx tsc --noEmit`, `pyright`, N/A |
+| `{{BUILD_COMMAND}}` | detect-stack.sh | `npm run build`, `cargo build`, N/A |
+
+**Substitution algorithm:**
+1. Read template from `assets/agent-templates/`
+2. For each `{{PLACEHOLDER}}`:
+   a. Look up value from detect-stack.sh output
+   b. If found, replace placeholder
+   c. If not found, skip creating that agent (not all stacks have all tools)
+3. Write result to `.claude/agents/`
+
+### 2.3 Dora Dependency Detection
+
+Dora requires **both** the CLI and a language-specific indexer:
+
+| Language | CLI | Indexer | Check Command |
+|----------|-----|---------|---------------|
+| TypeScript/JS | `dora` | `scip-typescript` | `which scip-typescript` |
+| Python | `dora` | `scip-python` | `which scip-python` |
+| Rust | `dora` | `rust-analyzer` | `which rust-analyzer` |
+
+**Detection flow:**
+1. Check `which dora` - if missing, advise: "Install dora: `npm install -g @anthropic/dora-cli`"
+2. Check language-specific indexer - if missing, advise: "Install indexer: `npm install -g @anthropic/scip-typescript`"
+3. Only proceed with dora init if both are present
+
+### 2.4 LSP Scope (Advisory Only)
+
+LSP detection is **advisory only** - no integration, just user guidance:
+
+| Language | Check | Advisory Message |
+|----------|-------|------------------|
+| TypeScript | `which typescript-language-server` | "For better IDE support, install: `npm install -g typescript-language-server`" |
+| Python | `which pyright` | "For better IDE support, install: `pip install pyright`" |
+
+No agents or skills are created for LSP. It's a helpful note in project-setup output.
+
+---
+
+## 3. Data Flow
+
+### 3.1 Agent Invocation Flow
 
 ```
 User/Claude requests mechanical task
@@ -102,7 +175,7 @@ Results return to main conversation
 (minimal tokens consumed)
 ```
 
-### Project-Setup Flow
+### 3.2 Project-Setup Flow
 
 ```
 project-setup invoked
@@ -135,33 +208,33 @@ project-setup invoked
 Commit, handoff
 ```
 
-## 3. Key Decisions
+## 4. Key Decisions
 
-### 3.1 Agents vs Skills for Mechanical Tasks
+### 4.1 Agents vs Skills for Mechanical Tasks
 
 **Decision:** Use agents, not skills.
 
 **Rationale:** Only agents support the `model` field for routing to Haiku. Additionally, agents run in isolated context, preventing mechanical task output from polluting the main conversation.
 
-### 3.2 Universal vs Per-Project Agents
+### 4.2 Universal vs Per-Project Agents
 
 **Decision:** Git agents in plugin (universal), test/lint/build as templates (per-project).
 
 **Rationale:** Git commands are identical everywhere. Test/lint/build vary by stack.
 
-### 3.3 Detect and Advise vs Auto-Install
+### 4.3 Detect and Advise vs Auto-Install
 
 **Decision:** Detect tools, advise user if missing. Don't auto-install.
 
 **Rationale:** Installation requires user consent and varies by system (npm, pip, cargo, homebrew). Safer to advise.
 
-### 3.4 Dora Skill Location
+### 4.4 Dora Skill Location
 
 **Decision:** Copy template to `.dora/docs/SKILL.md`, symlink from `.claude/skills/dora/`.
 
 **Rationale:** Matches the pattern you've already established. Skill travels with dora config.
 
-## 4. Error Handling Strategy
+## 5. Error Handling Strategy
 
 ### Tool Detection Failures
 
@@ -182,7 +255,7 @@ If a generated agent's command fails (e.g., `npm test` but no test script):
 - Agent reports the error
 - User/Opus decides how to proceed
 
-## 5. Testing Strategy
+## 6. Testing Strategy
 
 ### Unit Testing
 
@@ -201,17 +274,19 @@ If a generated agent's command fails (e.g., `npm test` but no test script):
 - Invoke `/test`, `/lint`, etc. and verify Haiku handles them
 - Check token usage to confirm savings
 
-## 6. Known Risks and Mitigations
+## 7. Known Risks and Mitigations
 
 | Risk | Mitigation |
 |------|------------|
 | Agent `model: haiku` not respected by Claude Code | Test early; this is core to the feature |
 | detect-stack.sh misidentifies project | Keep detection simple; err toward generic |
 | Dora indexing fails for some projects | Graceful failure; dora is optional enhancement |
-| Agent descriptions conflict with existing agents | Use specific, unique descriptions |
+| Agent descriptions conflict with existing agents | Use specific descriptions with "mechanical task" and "Haiku" keywords |
 | Template substitution edge cases | Keep templates simple; test common stacks |
+| Windows symlink limitations | Use file copy instead of symlink; symlinks optional optimization |
+| Dora indexer missing | Check for both dora CLI and language indexer before init |
 
-## 7. File Structure
+## 8. File Structure
 
 ### In devpowers plugin
 
@@ -258,7 +333,7 @@ devpowers/
     └── SKILL.md         # Copied from template
 ```
 
-## 8. Implementation Order
+## 9. Implementation Order
 
 1. **Create universal git agents** - Quick win, immediately useful
 2. **Create agent templates** - Test/lint/typecheck/build
@@ -267,3 +342,19 @@ devpowers/
 5. **Update project-setup SKILL.md** - Extended workflow
 6. **Test on sample projects** - TypeScript, Python, Rust
 7. **Update related skills** - Add references to new agents
+
+---
+
+## Revision History
+
+### v2 - 2026-01-26 - Plan Review Round 1
+
+**Issues Addressed:**
+- [CRITICAL] Added Section 2: Specifications with hook merging algorithm
+- [CRITICAL] Added template substitution format with placeholders
+- [CRITICAL] Added dora indexer dependency detection
+- [IMPORTANT] Clarified LSP scope as advisory-only
+- [IMPORTANT] Added Windows symlink mitigation
+- [MINOR] Fixed section numbering (was missing section 2)
+
+**Reviewer Notes:** 3 critics found overlapping issues around undefined specifications. Added concrete algorithms for hook merging, template substitution, and dependency detection.
