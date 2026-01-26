@@ -1,10 +1,10 @@
 # Workflow Status: Token Efficiency Refactor
 
 ## Current State
-- **Stage:** brainstorming (complete)
+- **Stage:** high-level-plan
 - **Scope:** medium
 - **Last Updated:** 2026-01-26
-- **Last Action:** Brainstorming complete - design validated
+- **Last Action:** High-level plan written (2 spikes verified)
 
 ## Sub-State (for review loops)
 - **Review Round:** N/A
@@ -13,7 +13,7 @@
 
 ## Progress
 - [x] Brainstorming complete
-- [ ] High-level plan written
+- [x] High-level plan written
 - [ ] Plan review converged (round _/3)
 - [ ] Tasks broken down
 - [ ] Domain review converged (round _/3)
@@ -31,8 +31,8 @@ None
 None yet
 
 ## Next Action
-Write high-level implementation plan
+Plan review (reviewing-plans skill)
 
 ## Recovery Info
-- **Partial Progress:** Design document at brainstorm.md
-- **Resume Command:** Invoke `devpowers:writing-plans`
+- **Partial Progress:** High-level plan at high-level-plan.md
+- **Resume Command:** Invoke `devpowers:reviewing-plans`
