@@ -74,11 +74,15 @@ digraph process {
 }
 ```
 
-## Prompt Templates
+## Agents and Prompts
 
-- `references/implementer-prompt.md` - Implementer subagent
-- `references/spec-reviewer-prompt.md` - Spec compliance reviewer
-- `references/code-quality-reviewer-prompt.md` - Code quality reviewer
+**Implementer:** Dispatch `tdd-implementer` agent (model: haiku) with task spec and test plan.
+
+**Reviewers:**
+- `references/spec-reviewer-prompt.md` - Spec compliance
+- `references/code-quality-reviewer-prompt.md` - Code quality
+
+See `references/implementer-prompt.md` for fallback template if agent unavailable.
 
 ## Task Execution
 

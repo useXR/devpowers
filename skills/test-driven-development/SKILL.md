@@ -5,188 +5,64 @@ description: Use when implementing any feature or bugfix, before writing impleme
 
 # Test-Driven Development (TDD)
 
-## Overview
-
 Write the test first. Watch it fail. Write minimal code to pass.
 
 **Core principle:** If you didn't watch the test fail, you don't know if it tests the right thing.
 
-**Violating the letter of the rules is violating the spirit of the rules.**
+## Dispatch Agent
 
-## When to Use
+For implementation tasks, dispatch the `tdd-implementer` agent.
 
-**Always:** New features, bug fixes, refactoring, behavior changes.
-
-**Exceptions (ask your human partner):** Throwaway prototypes, generated code, configuration files.
-
-Thinking "skip TDD just this once"? Stop. That's rationalization.
-
-## Test Plan Integration
-
-When a task document exists with test plans:
-1. Read "Unit Test Plan" section for unit tests
-2. Read "E2E Test Plan" section for integration tests
-3. Implement tests in the order specified
-4. Do not skip planned tests
-
-## The Iron Law
-
+**Dispatch with:**
 ```
-NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST
+Task spec: [from task document - goal, context, files, steps, criteria]
+Test plan: [from task document - Unit Test Plan section]
+Project context: [test framework, file locations]
 ```
 
-Write code before the test? Delete it. Start over.
+The agent follows Red-Green-Refactor for each test and returns implementation with passing tests.
 
-**No exceptions:**
-- Don't keep it as "reference"
-- Don't "adapt" it while writing tests
-- Don't look at it
-- Delete means delete
+## When to Use Agent vs Manual
 
-Implement fresh from tests. Period.
+| Situation | Approach |
+|-----------|----------|
+| Implementing task from plan | Dispatch `tdd-implementer` agent |
+| Quick bug fix | Follow cycle manually (see below) |
+| Exploration/spike | Write throwaway code, then delete and use TDD |
 
-## Red-Green-Refactor
+## Manual TDD Cycle
 
-```dot
-digraph tdd_cycle {
-    rankdir=LR;
-    red [label="RED\nWrite failing test", shape=box, style=filled, fillcolor="#ffcccc"];
-    verify_red [label="Verify fails\ncorrectly", shape=diamond];
-    green [label="GREEN\nMinimal code", shape=box, style=filled, fillcolor="#ccffcc"];
-    verify_green [label="Verify passes\nAll green", shape=diamond];
-    refactor [label="REFACTOR\nClean up", shape=box, style=filled, fillcolor="#ccccff"];
-    next [label="Next", shape=ellipse];
+For quick fixes without full agent dispatch:
 
-    red -> verify_red;
-    verify_red -> green [label="yes"];
-    verify_red -> red [label="wrong\nfailure"];
-    green -> verify_green;
-    verify_green -> refactor [label="yes"];
-    verify_green -> green [label="no"];
-    refactor -> verify_green [label="stay\ngreen"];
-    verify_green -> next;
-    next -> red;
-}
-```
+### RED
+Write one failing test. Run it. Confirm it fails for the right reason.
 
-### RED - Write Failing Test
+### GREEN
+Write minimal code to pass. Run tests. All green.
 
-Write one minimal test showing what should happen.
+### REFACTOR
+Clean up. Keep tests green. Don't add behavior.
 
-**Requirements:** One behavior. Clear name. Real code (no mocks unless unavoidable).
+## Red Flags
 
-**For detailed examples:** Read `./references/examples.md`
-
-### Verify RED - Watch It Fail
-
-**MANDATORY. Never skip.**
-
-```bash
-npm test path/to/test.test.ts
-```
-
-Confirm: Test fails (not errors). Failure message is expected. Fails because feature missing (not typos).
-
-**Test passes?** You're testing existing behavior. Fix test.
-
-### GREEN - Minimal Code
-
-Write simplest code to pass the test. Don't add features, refactor other code, or "improve" beyond the test.
-
-### Verify GREEN - Watch It Pass
-
-**MANDATORY.**
-
-```bash
-npm test path/to/test.test.ts
-```
-
-Confirm: Test passes. Other tests still pass. Output pristine.
-
-**Test fails?** Fix code, not test. **Other tests fail?** Fix now.
-
-### REFACTOR - Clean Up
-
-After green only: Remove duplication, improve names, extract helpers.
-
-Keep tests green. Don't add behavior.
-
-## Good Tests
-
-| Quality | Good | Bad |
-|---------|------|-----|
-| **Minimal** | One thing. "and" in name? Split it. | `test('validates email and domain and whitespace')` |
-| **Clear** | Name describes behavior | `test('test1')` |
-| **Shows intent** | Demonstrates desired API | Obscures what code should do |
-
-## Common Rationalizations
-
-| Excuse | Reality |
-|--------|---------|
-| "Too simple to test" | Simple code breaks. Test takes 30 seconds. |
-| "I'll test after" | Tests passing immediately prove nothing. |
-| "Tests after achieve same goals" | Tests-after = "what does this do?" Tests-first = "what should this do?" |
-| "Already manually tested" | Ad-hoc does not equal systematic. No record, can't re-run. |
-| "Deleting X hours is wasteful" | Sunk cost fallacy. Keeping unverified code is technical debt. |
-| "Keep as reference, write tests first" | You'll adapt it. That's testing after. Delete means delete. |
-| "Need to explore first" | Fine. Throw away exploration, start with TDD. |
-| "Test hard = design unclear" | Listen to test. Hard to test = hard to use. |
-| "TDD will slow me down" | TDD faster than debugging. Pragmatic = test-first. |
-| "Manual test faster" | Manual doesn't prove edge cases. You'll re-test every change. |
-| "Existing code has no tests" | You're improving it. Add tests for existing code. |
-
-**For detailed justifications:** Read `./references/why-order-matters.md`
-
-## Red Flags - STOP and Start Over
-
+These mean TDD was violated - delete code and restart:
 - Code before test
-- Test after implementation
-- Test passes immediately
+- Test passed immediately
 - Can't explain why test failed
-- Tests added "later"
-- Rationalizing "just this once"
-- "I already manually tested it"
-- "Tests after achieve the same purpose"
-- "It's about spirit not ritual"
-- "Keep as reference" or "adapt existing code"
-- "Already spent X hours, deleting is wasteful"
-- "TDD is dogmatic, I'm being pragmatic"
-- "This is different because..."
+- "Just this once" rationalization
 
-**All of these mean: Delete code. Start over with TDD.**
+## Reference Materials
+
+For detailed examples and guidance:
+- `./references/examples.md` - Good vs bad tests and implementations
+- `./references/why-order-matters.md` - Why test-first matters
+- `./testing-anti-patterns.md` - Common testing mistakes
 
 ## Verification Checklist
 
-Before marking work complete:
-
-- [ ] Every new function/method has a test
-- [ ] Watched each test fail before implementing
-- [ ] Each test failed for expected reason (feature missing, not typo)
-- [ ] Wrote minimal code to pass each test
+Before marking complete:
+- [ ] Every function has a test
+- [ ] Watched each test fail first
+- [ ] Wrote minimal code to pass
 - [ ] All tests pass
-- [ ] Output pristine (no errors, warnings)
-- [ ] Tests use real code (mocks only if unavoidable)
-- [ ] Edge cases and errors covered
-
-Can't check all boxes? You skipped TDD. Start over.
-
-## When Stuck
-
-**For guidance:** Read `./references/examples.md`
-
-## Debugging Integration
-
-Bug found? Write failing test first. Never fix bugs without a test.
-
-## Testing Anti-Patterns
-
-When adding mocks or test utilities, read @testing-anti-patterns.md to avoid common pitfalls.
-
-## Final Rule
-
-```
-Production code -> test exists and failed first
-Otherwise -> not TDD
-```
-
-No exceptions without your human partner's permission.
+- [ ] No warnings in output
