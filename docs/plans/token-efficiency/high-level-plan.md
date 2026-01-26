@@ -37,8 +37,8 @@
 | Priority | Skill | Current | Target | Reason |
 |----------|-------|---------|--------|--------|
 | P1 | using-devpowers | 1,686 | ~500 | Loads every session |
-| P2 | test-driven-development | 1,612 | ~700 | Loads on most implementations |
-| P2 | systematic-debugging | 1,504 | ~600 | Loads on debugging |
+| P2 | test-driven-development | 1,612 | ~900 | Loads on most implementations (discipline skill - higher target) |
+| P2 | systematic-debugging | 1,504 | ~800 | Loads on debugging (discipline skill - higher target) |
 | P2 | subagent-driven-development | 1,499 | ~600 | Loads on plan execution |
 | P2 | reviewing-plans | 1,157 | ~500 | Loads during review phase |
 | P2 | domain-review | 1,093 | ~500 | Loads during review phase |
@@ -119,21 +119,54 @@ For each skill being compressed:
 
 ### 3.2 Explicit reference pointers
 
-**Decision:** Add clear "For details, see references/X.md" callouts in SKILL.md.
+**Decision:** Add clear reference pointers using a standard format.
 
-**Rationale:** Claude won't know references exist unless explicitly told. Implicit discovery is unreliable.
+**Standard format for required references:**
+```markdown
+**For detailed guidance:** Read `./references/[name].md` before proceeding.
+```
 
-### 3.3 Keep red-flag lists inline for discipline skills
+**Standard format for optional references:**
+```markdown
+**Reference:** `./references/[name].md` - [one-line description]
+```
 
-**Decision:** For TDD and debugging skills, keep the "red flags" / rationalization tables in SKILL.md, move only detailed explanations to references.
+**Rationale:** Claude won't know references exist unless explicitly told. Consistent format aids discovery and makes pointer intent clear (required vs optional).
 
-**Rationale:** These tables are critical for preventing shortcuts. They must be immediately visible, not buried in references.
+### 3.3 Content categorization criteria
+
+**Decision:** Use explicit criteria to decide what stays inline vs. moves to references.
+
+**Core content (keep inline):**
+- Routing logic and decision flowcharts
+- Handoff rules and skill invocation triggers
+- Discipline enforcers (red-flag lists, rationalization tables) for TDD and debugging skills
+- Convergence algorithms and procedural steps
+
+**Reference content (can move):**
+- Detailed tier definitions and verbose explanations
+- Example tables and supporting evidence
+- Severity guides and classification details
+- Scope precedence rules and edge cases
+
+**Rationale:** Core content must be immediately visible for correct behavior. Reference content supports understanding but isn't needed for every invocation.
+
+**Special cases:**
+- `using-devpowers` red flags SHOULD stay inline (frequently referenced, only ~200 words)
+- TDD and debugging red flags MUST stay inline (discipline enforcement is critical)
+
+**Existing structure handling:**
+- Some skills already have direct files in skill folder (e.g., `systematic-debugging/root-cause-tracing.md`)
+- During compression: move existing direct files to `references/` subdirectory for consistency
+- Or document that direct files remain if they serve different purposes (e.g., technique guides vs. reference tables)
 
 ### 3.4 No hook architecture changes
 
-**Decision:** Keep session-start.sh unchanged except it now reads a smaller skill file.
+**Decision:** Keep session-start.sh unchanged. The hook uses `cat` to read SKILL.md, so compressing the file directly reduces injected tokens.
 
-**Rationale:** Simplicity. The skill compression naturally reduces injected content.
+**Rationale:** The hook reads whatever is in SKILL.md. No code changes needed - compress the skill file and the hook automatically injects less content.
+
+**Verification:** After compression, session-start.sh will inject ~500 words instead of ~1,686 words.
 
 ### 3.5 Opus as default model
 
@@ -176,11 +209,30 @@ For each skill being compressed:
 
 ### 5.1 Per-skill functional tests
 
-After compressing each skill:
-1. Invoke skill with typical trigger phrase
-2. Verify skill loads and provides correct guidance
-3. Verify Claude reads references when appropriate
-4. Check no critical content is missing from immediate view
+After compressing each skill, test with specific scenarios:
+
+| Skill | Trigger Phrase | Expected Behavior | Critical Content to Verify |
+|-------|---------------|-------------------|---------------------------|
+| using-devpowers | "start a feature" | Routes to brainstorming | Scope flowchart visible |
+| test-driven-development | "implement with TDD" | Shows red-green-refactor | Red flags table inline |
+| systematic-debugging | "debug this issue" | Shows hypothesis process | Iron law visible |
+| subagent-driven-development | "execute this plan" | Dispatches subagents | Review workflow present |
+| reviewing-plans | "review this plan" | Runs critics | Convergence rules present |
+| domain-review | "review tasks" | Checks hard gates | Gate criteria visible |
+
+**Test procedure:**
+1. Invoke skill with trigger phrase
+2. Verify critical content appears without reading references
+3. Trigger a scenario requiring reference content (see table below)
+4. Verify Claude reads the appropriate reference file
+
+**Reference trigger scenarios:**
+| Skill | Scenario | Expected Reference |
+|-------|----------|-------------------|
+| using-devpowers | "Explain what happens when scope conflicts" | scope-tiers.md |
+| reviewing-plans | "What severity is a missing edge case?" | severity-guide.md |
+| domain-review | "What's the gap-finding protocol?" | gap-finding-protocol.md |
+| TDD/debugging | N/A - discipline content stays inline | N/A |
 
 ### 5.2 Integration test
 
@@ -220,7 +272,9 @@ For each skill (TDD, debugging, subagent-driven, reviewing-plans, domain-review)
 4. Test skill functions correctly
 5. Commit
 
-### Phase 3: Guidance documentation
+### Phase 3: Guidance documentation (Optional/Stretch)
+
+**Note:** This phase adds new content rather than compressing existing content. It's orthogonal to the main token reduction goal. Implement only if Phases 1-2 complete successfully and time permits.
 
 1. Add model selection section to dispatching-parallel-agents
 2. Create references/model-selection.md
@@ -229,9 +283,28 @@ For each skill (TDD, debugging, subagent-driven, reviewing-plans, domain-review)
 
 ### Phase 4: Validation
 
-1. Run integration test through complete workflow
-2. Measure token savings
-3. Document results in learnings.md
+1. Run integration test: brainstorm → plan → review → implement cycle
+2. Measure word counts before/after for each compressed skill
+3. Verify no workflow breaks in the integration test
+4. Document results in learnings.md
+
+**Rollback criteria:**
+- If any skill fails to trigger on expected phrases: revert that skill immediately
+- If workflow breaks (can't complete brainstorm→implement cycle): revert to last working state
+- If token savings <40% (vs. target 60%): evaluate whether to proceed or adjust targets
+
+**Baseline measurement:**
+| Skill | Before (words) | Target (words) | Expected Savings | Notes |
+|-------|---------------|----------------|------------------|-------|
+| using-devpowers | 1,686 | 600 | 1,086 (64%) | Keep red flags inline |
+| test-driven-development | 1,612 | 900 | 712 (44%) | Discipline skill - keep tables inline |
+| systematic-debugging | 1,504 | 800 | 704 (47%) | Discipline skill - keep tables inline |
+| subagent-driven-development | 1,499 | 600 | 899 (60%) | Templates already external |
+| reviewing-plans | 1,157 | 600 | 557 (48%) | Already has references/ |
+| domain-review | 1,093 | 600 | 493 (45%) | Already has references/ |
+| **Total** | **8,551** | **4,100** | **4,451 (52%)** | Realistic targets |
+
+**Measurement methodology:** Use `wc -w SKILL.md` for consistency. All measurements exclude references/ content.
 
 ---
 
@@ -251,10 +324,11 @@ For each skill (TDD, debugging, subagent-driven, reviewing-plans, domain-review)
 
 | Metric | Target |
 |--------|--------|
-| using-devpowers word count | ≤500 words |
-| P2 skills word count | ≤800 words each |
-| Per-session token reduction | ~1,200 words |
-| Per-workflow token reduction | ~4,000-5,000 words |
+| using-devpowers word count | ≤600 words |
+| Discipline skills (TDD, debugging) | ≤900 words each |
+| Other P2 skills | ≤600 words each |
+| Per-session word reduction | ~1,100 words |
+| Overall reduction | ~52% (4,451 words) |
 | All skills still functional | 100% pass rate |
 | No workflow breaks | Zero regressions |
 
@@ -266,3 +340,32 @@ For each skill (TDD, debugging, subagent-driven, reviewing-plans, domain-review)
 - Hook architecture changes - unnecessary complexity
 - Automated token counting/enforcement - manual measurement sufficient
 - Changes to skill discovery/routing mechanism - working as designed
+
+---
+
+## Revision History
+
+### v2 - 2026-01-26 - Plan Review Round 1
+
+**Issues Addressed:**
+- [CRITICAL] Clarified hook injection mechanism - compression reduces injected tokens directly
+- [CRITICAL] Resolved contradictory red-flags decision - routing skills can move red-flags, discipline skills keep inline
+- [CRITICAL] Added content categorization criteria for core vs. reference content
+- [IMPORTANT] Added specific test scenarios with trigger phrases and expected behaviors
+- [IMPORTANT] Added rollback criteria and baseline measurement table
+- [IMPORTANT] Added standard reference pointer format
+- [IMPORTANT] Marked Phase 3 as optional/stretch goal (scope creep concern)
+
+**Reviewer Notes:** Three critics found overlapping concerns about hook mechanism, testing specificity, and content categorization. All critical issues addressed.
+
+### v3 - 2026-01-26 - Plan Review Round 2
+
+**Issues Addressed:**
+- [CRITICAL] Added handling for existing directory structures (some skills use direct files, not references/)
+- [IMPORTANT] Increased discipline skill targets (TDD: 700→900, debugging: 600→800) - must keep tables inline
+- [IMPORTANT] Increased using-devpowers target (500→600) - keep red flags inline
+- [IMPORTANT] Added reference trigger scenarios for testing methodology
+- [IMPORTANT] Added measurement methodology note (wc -w for consistency)
+- [MINOR] Updated total savings estimate (60%→52%) to reflect realistic targets
+
+**Reviewer Notes:** Two critics converged on discipline skill targets being unrealistic. Adjusted targets to preserve discipline enforcement. Overall savings reduced but more achievable.
