@@ -9,95 +9,39 @@ description: >
 
 # Task Breakdown
 
-## Overview
-
 Break a reviewed high-level plan into implementable task documents.
 
-Distinct from `chunking-plans` which handles **recursive subdivision** of tasks that turn out to be too complex during domain review.
+**Announce at start:** "I'm using the task-breakdown skill to create task files."
 
-| Skill | Purpose | Input | Output |
-|-------|---------|-------|--------|
-| `task-breakdown` | Initial breakdown | high-level-plan.md | tasks/*.md |
-| `chunking-plans` | Recursive subdivision | Existing task too complex | task/subtasks/*.md |
+## Dispatch Agent
 
-## Output Structure
+This skill delegates to the `task-breakdown` agent for execution.
 
-Creates:
+**Dispatch with:**
 ```
-/docs/plans/[feature]/tasks/
-├── 00-overview.md      # Dependency map and task index
-├── 01-setup.md         # First task
-├── 02-models.md        # Second task
-└── ...
+Plan path: /docs/plans/[feature]/high-level-plan.md
+Feature name: [feature]
+Current scope: [Small/Medium/Large from STATUS.md]
 ```
 
-Each task sized for ~30 min to 2 hours of implementation work.
+The agent will:
+1. Read the plan and identify task boundaries
+2. Create task files in `/docs/plans/[feature]/tasks/`
+3. Generate 00-overview.md with dependency map
+4. Check for scope escalation triggers
+5. Update STATUS.md
+6. Return a summary
 
-## Workflow
+## After Agent Returns
 
-1. Read approved high-level plan from `/docs/plans/[feature]/high-level-plan.md`
-2. Identify logical task boundaries (by component, by layer, by feature slice)
-3. Create task files using `assets/task-template-v3.md`
-4. Generate `00-overview.md` with task map showing execution order
-5. Validate: each task is self-contained enough to implement independently
-6. **Scope Re-evaluation Checkpoint** (see below)
-7. Update STATUS.md
-   - Stage: task-breakdown
-   - Last Action: Tasks created
-   - Next Action: Domain review
+Review the agent's summary for:
 
-## Scope Re-evaluation Checkpoint
+1. **Scope escalation warnings** - If detected, present to user:
+   > "Task breakdown found scope triggers: [list]. Recommend escalating from [X] to [Y]. Adjust scope?"
 
-**After creating tasks, re-evaluate scope.** Task breakdown reveals the true complexity.
+2. **Task count sanity check** - More than 8 tasks may indicate scope creep
 
-### Check for Scope Escalation Triggers
-
-| Finding | Action |
-|---------|--------|
-| More than 5 tasks created | Consider: is this still the scope we estimated? |
-| Any task requires new dependency not in plan | Escalate to Medium if was Small |
-| Any task touches auth/security not anticipated | Escalate to Medium if was Small |
-| Tasks span multiple services/repos | Escalate to Large |
-| Architectural decisions needed that weren't in plan | Escalate to Large |
-
-### Scope Re-evaluation Prompt
-
-If triggers detected:
-
-> "Task breakdown complete. Created [N] tasks.
->
-> **Scope re-evaluation:** [Describe what was found]
-> - Original scope: [Small/Medium/Large]
-> - Suggested scope: [Small/Medium/Large]
-> - Reason: [Why scope should change]
->
-> Adjust scope and workflow, or continue with original scope?"
-
-### What Changes with Scope Escalation
-
-| From → To | What's Added |
-|-----------|--------------|
-| Small → Medium | Plan review, domain review with hard gates, integration checklist |
-| Medium → Large | User journey mapping, cross-domain review, mandatory lessons-learned |
-
-**If user declines escalation:** Document the decision in STATUS.md and proceed, but note the risk.
-
-## Task Sizing Guidelines
-
-Read `references/task-sizing-guide.md` for detailed guidance.
-
-Quick rules:
-- **Too small:** < 30 min, merge with adjacent task
-- **Right size:** 30 min - 2 hours
-- **Too large:** > 2 hours, consider splitting
-
-## State Update
-
-After creating tasks, update STATUS.md:
-- Stage: task-breakdown
-- Last Action: [N] tasks created
-- Scope: [Original or escalated scope]
-- Next Action: Domain review
+3. **Missing dependencies** - Verify task order makes sense
 
 ## Handoff
 
@@ -107,3 +51,10 @@ After creating tasks, update STATUS.md:
 Ready for domain review?"
 
 -> Invokes `domain-review`
+
+## Templates (for agent reference)
+
+The agent uses templates from:
+- `assets/task-template.md`
+- `assets/overview-template.md`
+- `references/task-sizing-guide.md`
