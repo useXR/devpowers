@@ -1,3 +1,6 @@
 .worktrees/
 .private-journal/
 .claude/
+
+# dora code context index
+.dora/
