@@ -26,13 +26,21 @@ This is the integration task that brings together all previous work. Project-set
 2. Add new sections to the workflow (after "Create master docs"):
 
    **Step 3: Dora Integration**
-   - Check `which dora` - if missing, advise installation
+   - Check `which dora` - if missing, advise: "Install dora with: npm i -g @getdora/cli"
    - Check language-specific indexer (scip-typescript, etc.)
    - If both present:
-     - Run `dora init`
+     - Check if already initialized: `[ -f .dora/config.json ]` - if yes, skip init
+     - Run `dora init` (if not already initialized)
      - Copy `assets/dora/SKILL.md` to `.dora/docs/SKILL.md`
      - Create `.claude/skills/dora/` directory
-     - Create symlink (or copy on Windows): `.claude/skills/dora/SKILL.md`
+     - **OS Detection for symlink/copy:**
+       ```bash
+       if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
+         cp .dora/docs/SKILL.md .claude/skills/dora/SKILL.md
+       else
+         ln -sf ../../../.dora/docs/SKILL.md .claude/skills/dora/SKILL.md
+       fi
+       ```
      - Merge hooks from `assets/hooks/dora-hooks.json` into `settings.local.json`
 
    **Step 4: LSP Advisory**
@@ -40,16 +48,42 @@ This is the integration task that brings together all previous work. Project-set
    - Output advisory message if missing (no action needed)
 
    **Step 5: Generate Stack-Specific Agents**
-   - Parse detect-stack.sh output for TOOL_COMMANDS
-   - For each placeholder (TEST_COMMAND, etc.):
-     - If value exists, substitute into template
-     - Write result to `.claude/agents/`
-   - Skip agents for empty commands
+
+   **5a. Parse detect-stack.sh output safely (NO eval):**
+   ```bash
+   # Run detect-stack.sh and capture TOOL_COMMANDS section
+   OUTPUT=$(./scripts/detect-stack.sh)
+   TOOL_SECTION=$(echo "$OUTPUT" | sed -n '/---TOOL_COMMANDS---/,$p')
+
+   # Extract each command value using grep + cut (safe parsing)
+   TEST_CMD=$(echo "$TOOL_SECTION" | grep '^TEST_COMMAND=' | cut -d'=' -f2-)
+   LINT_CMD=$(echo "$TOOL_SECTION" | grep '^LINT_COMMAND=' | cut -d'=' -f2-)
+   # ... repeat for TYPECHECK_COMMAND, BUILD_COMMAND
+   ```
+
+   **5b. For each placeholder (TEST_COMMAND, LINT_COMMAND, etc.):**
+   - If value is empty, skip that agent template
+   - **Validate value**: reject if contains shell metacharacters: `; | & $ \` ' " ( ) < > { }`
+     - If invalid: `echo "Warning: Skipping test agent - unsafe characters in command: $TEST_CMD"`
+   - Substitute placeholder `{{COMMAND}}` with validated value using `sed`
+   - Check if agent already exists: `[ -f .claude/agents/test.md ]` - if yes, skip (don't overwrite)
+   - Write result to `.claude/agents/`
+   - Example: `TEST_COMMAND=npm test` → `agents/test.md` with `npm test` substituted
 
 3. Add hook merging implementation detail:
-   - Read existing settings.local.json
-   - Deep merge hooks object
-   - Write back
+   ```
+   Hook Merge Algorithm:
+   1. Read existing .claude/settings.local.json (or create {})
+   2. Ensure "hooks" key exists (or create empty {})
+   3. For each event in dora-hooks.json (SessionStart, Stop):
+      a. Get existing hooks array for that event (or create [])
+      b. Check for duplicates: if existing hook command contains "dora index", skip (already present)
+      c. Append new hook entry to array
+   4. Ensure ~/.claude/logs/ directory exists (mkdir -p)
+   5. Write merged result back to settings.local.json
+   ```
+   - Idempotency: Running twice doesn't duplicate hooks (duplicate check in step 3b)
+   - Preserves existing hooks (other than dora-related ones)
 
 4. Update handoff message to list what was created
 
@@ -108,9 +142,11 @@ This is the integration task that brings together all previous work. Project-set
 
 **Required Coverage Categories:**
 
-- [x] **Happy Path**: Run project-setup on TS project with dora installed - verify agents created
-- [x] **Error/Exception Path**: Run on project without dora - verify advisory shown, no crash
-- [x] **Edge/Boundary Case**: Run on project with existing settings.local.json - verify hooks merged not replaced
+- [x] **Happy Path**: Run on TS project with `npm test` and `npm run lint` in package.json, dora installed → verify `.claude/agents/test.md` and `.claude/agents/lint.md` exist with substituted commands (not `{{PLACEHOLDER}}`)
+- [x] **Error/Exception Path**: Run on project without dora → verify advisory "Install dora with: npm i -g @getdora/cli" shown, setup continues
+- [x] **Edge/Boundary Case**: Run on project with existing settings.local.json containing `PostToolUse` hook → verify result contains BOTH original `PostToolUse` AND new dora `SessionStart` hooks
+- [x] **Idempotency**: Run project-setup twice on same project → verify second run doesn't duplicate hooks or agents
+- [x] **Validation**: Run with malicious package.json containing `test: "npm test; rm -rf /"` → verify command rejected with warning, agent not created
 
 ## E2E/Integration Test Plan
 
@@ -122,11 +158,14 @@ Full integration tested in Task 6.
 
 | Scenario | Expected Behavior |
 |----------|-------------------|
-| dora installed, indexer missing | Skip dora, advise on indexer |
+| dora installed, indexer missing | Skip dora, advise "Install scip-typescript" |
 | settings.local.json exists with hooks | Merge dora hooks, preserve existing |
 | settings.local.json doesn't exist | Create new with dora hooks |
 | package.json has no test script | Skip test.md agent, create others |
 | Windows OS detected | Copy files instead of symlink |
+| Run twice (idempotency) | Second run: no duplicates, no errors |
+| Command contains shell metacharacters | Reject with warning, skip that agent |
+| dora init already done | Skip init (check for .dora/config.json) |
 
 ---
 

@@ -60,11 +60,13 @@ This task validates that all components work together: universal git agents, sta
 ## Acceptance Criteria
 
 - [ ] Universal git agents work and report correctly
-- [ ] TypeScript project setup creates all expected files
-- [ ] Python project setup creates all expected files
-- [ ] Agents have `model: haiku` in frontmatter
-- [ ] Hook merging preserves existing hooks
+- [ ] TypeScript project setup creates all expected files (per test matrix)
+- [ ] Python project setup creates all expected files (per test matrix)
+- [ ] Rust project setup creates all expected files (per test matrix)
+- [ ] All generated agents have `model: haiku` in frontmatter
+- [ ] Hook merging preserves existing hooks (verify with pre-existing PostToolUse hook)
 - [ ] Missing tools show advisory, don't crash
+- [ ] Second run is idempotent (no duplicates)
 
 ## Dependencies
 
@@ -108,13 +110,23 @@ This task validates that all components work together: universal git agents, sta
 
 **Required Coverage Categories:**
 
-- [x] **Happy Path**: Full setup on TypeScript project - all components work
-- [x] **Error/Exception Path**: Setup with missing dora - advisory shown, continues
-- [x] **Edge/Boundary Case**: Setup with existing hooks - merged correctly
+- [x] **Happy Path (TypeScript)**: Full setup on TS project with npm test/lint → agents created, hooks merged, dora initialized
+- [x] **Happy Path (Python)**: Full setup on Python project with pytest → agents created with `pytest` command
+- [x] **Happy Path (Rust)**: Full setup on Rust project → agents created with `cargo test`, `cargo clippy`
+- [x] **Error/Exception Path**: Setup with missing dora → advisory shown, continues without dora hooks
+- [x] **Edge/Boundary Case**: Setup with existing hooks → merged correctly (no duplicates)
+- [x] **Missing Scripts**: Project with no test/lint scripts → those agents skipped, others created
 
 ## E2E/Integration Test Plan
 
-This IS the E2E test task.
+**Test Matrix:**
+
+| Project Type | Has Test | Has Lint | Has dora | Expected Agents |
+|--------------|----------|----------|----------|-----------------|
+| TypeScript | ✓ npm test | ✓ eslint | ✓ | test.md, lint.md |
+| TypeScript | ✓ npm test | ✗ | ✗ | test.md only, dora advisory |
+| Python | ✓ pytest | ✓ ruff | ✓ | test.md, lint.md |
+| Rust | ✓ cargo test | ✓ clippy | ✗ | test.md, lint.md, dora advisory |
 
 ---
 

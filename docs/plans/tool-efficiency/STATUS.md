@@ -21,7 +21,7 @@
 - [x] User journeys mapped [skipped: no UI]
 - [x] Worktree created [skipped: working on main]
 - [x] Implementation complete (6/6 tasks)
-- [ ] Lessons captured
+- [x] Lessons captured
 - [ ] Branch finished
 
 ## Blocking Issues

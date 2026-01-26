@@ -35,18 +35,28 @@ The dora skill template is based on the existing `.dora/docs/SKILL.md` in this r
    {
      "SessionStart": [
        {
-         "type": "command",
-         "command": "dora status 2>/dev/null && (dora index > /tmp/dora-index.log 2>&1 &) || echo 'dora not initialized'"
+         "hooks": [
+           {
+             "type": "command",
+             "command": "dora status 2>/dev/null && (dora index > \"${HOME}/.claude/logs/dora-index.log\" 2>&1 &) || echo 'dora not initialized. Run: dora init && dora index'"
+           }
+         ]
        }
      ],
      "Stop": [
        {
-         "type": "command",
-         "command": "(dora index > /tmp/dora-index.log 2>&1 &) || true"
+         "hooks": [
+           {
+             "type": "command",
+             "command": "(dora index > \"${HOME}/.claude/logs/dora-index.log\" 2>&1 &) || true"
+           }
+         ]
        }
      ]
    }
    ```
+
+   **Note:** Uses `${HOME}/.claude/logs/` for cross-platform compatibility (not `/tmp`).
 
 4. Validate hooks JSON is valid
 
@@ -54,7 +64,9 @@ The dora skill template is based on the existing `.dora/docs/SKILL.md` in this r
 
 - [ ] Dora skill template created at `assets/dora/SKILL.md`
 - [ ] Hooks template created at `assets/hooks/dora-hooks.json`
-- [ ] Hooks JSON is valid (parseable)
+- [ ] Hooks JSON is valid (`jq . dora-hooks.json` exits 0)
+- [ ] Hooks use nested `hooks` array format (matches Claude Code schema)
+- [ ] Hooks use `${HOME}/.claude/logs/` for cross-platform log path
 - [ ] SessionStart hook runs dora index in background
 - [ ] Stop hook runs dora index in background
 
@@ -101,9 +113,10 @@ The dora skill template is based on the existing `.dora/docs/SKILL.md` in this r
 
 **Required Coverage Categories:**
 
-- [x] **Happy Path**: Hooks JSON parses correctly
-- [x] **Error/Exception Path**: SessionStart hook handles missing dora gracefully
-- [x] **Edge/Boundary Case**: Stop hook runs even if SessionStart didn't (|| true)
+- [x] **Happy Path**: Run `jq . assets/hooks/dora-hooks.json` - verify exit code 0 (valid JSON)
+- [x] **Error/Exception Path**: Execute SessionStart hook with dora not in PATH - verify outputs "dora not initialized" and exits 0
+- [x] **Edge/Boundary Case**: Execute Stop hook without prior SessionStart - verify runs independently (exit 0)
+- [x] **Validation**: Verify `assets/dora/SKILL.md` exists and contains valid markdown with at least one `#` heading (|| true)
 
 ## E2E/Integration Test Plan
 
@@ -115,9 +128,10 @@ Integration tested in Task 6 when hooks are triggered by session lifecycle.
 
 | Scenario | Expected Behavior |
 |----------|-------------------|
-| dora not installed | SessionStart prints "dora not initialized", continues |
-| dora index fails | Failure goes to /tmp/dora-index.log, doesn't block |
+| dora not installed | SessionStart prints "dora not initialized. Run: dora init && dora index", continues |
+| dora index fails | Failure goes to `~/.claude/logs/dora-index.log`, doesn't block |
 | Very large codebase | Index runs in background (&), session starts immediately |
+| Log directory missing | Hook creates `~/.claude/logs/` if needed (mkdir -p in wrapper) |
 
 ---
 

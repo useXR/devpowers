@@ -50,10 +50,11 @@ These templates will be customized per-project by project-setup. The placeholder
 
 ## Acceptance Criteria
 
-- [ ] All four templates created with correct placeholder syntax
+- [ ] All four templates created: `test.md`, `lint.md`, `typecheck.md`, `build.md`
 - [ ] Each template has `model: haiku` in frontmatter
 - [ ] Each template has description explaining it's a mechanical task
-- [ ] Placeholder names match spec: `{{TEST_COMMAND}}`, etc.
+- [ ] Placeholder names match spec exactly: `{{TEST_COMMAND}}`, `{{LINT_COMMAND}}`, `{{TYPECHECK_COMMAND}}`, `{{BUILD_COMMAND}}`
+- [ ] Each template instructs agent to summarize output (not dump entire log)
 
 ## Dependencies
 
@@ -102,9 +103,10 @@ These templates will be customized per-project by project-setup. The placeholder
 
 **Required Coverage Categories:**
 
-- [x] **Happy Path**: Template contains valid YAML frontmatter with `model: haiku`
-- [x] **Error/Exception Path**: Template handles command failure (instructs agent to report)
-- [x] **Edge/Boundary Case**: Placeholder syntax `{{...}}` is consistent across all templates
+- [x] **Happy Path**: Verify all four template files exist (test.md, lint.md, typecheck.md, build.md) and each contains valid YAML frontmatter with `model: haiku`
+- [x] **Error/Exception Path**: Verify each template's body instructs agent to report stderr and exit code on command failure (grep for "stderr" or "exit" or "error")
+- [x] **Edge/Boundary Case**: Run `grep -o '{{[A-Z_]*}}' *.md` across all templates → verify exactly: `{{TEST_COMMAND}}`, `{{LINT_COMMAND}}`, `{{TYPECHECK_COMMAND}}`, `{{BUILD_COMMAND}}` (no duplicates, no typos)
+- [x] **Distinctness**: Each template uses exactly ONE placeholder matching its purpose (test.md uses TEST_COMMAND only, etc.)
 
 ## E2E/Integration Test Plan
 
