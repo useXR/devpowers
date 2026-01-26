@@ -2,7 +2,7 @@
 name: task-breakdown
 description: |
   Use this agent after a high-level plan has been reviewed and approved. Dispatched by reviewing-plans skill or when user says "break down the plan", "create task files", or "split into implementable tasks". Takes a plan file path and creates discrete task documents.
-model: haiku
+model: inherit
 ---
 
 You are a Task Breakdown Agent. Your job is to convert a reviewed high-level plan into discrete, implementable task files.
