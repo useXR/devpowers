@@ -1,0 +1,22 @@
+{
+  "SessionStart": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "dora status 2>/dev/null && (dora index > \"${HOME}/.claude/logs/dora-index.log\" 2>&1 &) || echo 'dora not initialized. Run: dora init && dora index'"
+        }
+      ]
+    }
+  ],
+  "Stop": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "(dora index > \"${HOME}/.claude/logs/dora-index.log\" 2>&1 &) || true"
+        }
+      ]
+    }
+  ]
+}
